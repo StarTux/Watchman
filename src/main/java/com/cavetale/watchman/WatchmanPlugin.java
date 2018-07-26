@@ -98,7 +98,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                         break;
                     case "action": case "a":
                         try {
-                            SQLAction.Type action = SQLAction.Type.valueOf(toks[1]);
+                            SQLAction.Type action = SQLAction.Type.valueOf(toks[1].toUpperCase());
                             search.eq("action", action.name().toLowerCase());
                         } catch (IllegalArgumentException iae) {
                             sender.sendMessage("Unknown action: " + toks[1]);
@@ -301,7 +301,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         } else if (calNow.get(Calendar.DAY_OF_MONTH) != calThen.get(Calendar.DAY_OF_MONTH)) {
             sb.append(new SimpleDateFormat("EEE/dd HH:mm").format(action.getTime()));
         } else {
-            sb.append(new SimpleDateFormat("HH:mm").format(action.getTime()));
+            sb.append(new SimpleDateFormat("HH:mm:ss").format(action.getTime()));
         }
         sb.append(" ");
         if (action.getActorType().equals("player")) {
