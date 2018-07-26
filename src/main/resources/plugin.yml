@@ -1,0 +1,21 @@
+name: Watchman
+description: Player action logging tool
+author: StarTux
+version: 0.1
+api-version: 1.13
+website: http://cavetale.com
+main: com.cavetale.watchman.WatchmanPlugin
+depend: [ Dirty, SQL, PlayerCache ]
+softdepend: []
+commands:
+  watchman:
+    aliases: [ wm ]
+    description: Watchman admin interface
+    permission: watchman.watchman
+    usage: |-
+      Usage:
+      /watchman tool - Toggle block logging tool
+permissions:
+  watchman.watchman:
+    description: use /watchman
+    default: op
