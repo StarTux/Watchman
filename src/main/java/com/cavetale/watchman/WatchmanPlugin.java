@@ -236,6 +236,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     }
                 }
                 sender.sendMessage("Successfully rolled back " + count + " actions");
+                return true;
             }
             break;
         case "clear":
@@ -246,6 +247,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 } else {
                     player.sendMessage("You have no stored search");
                 }
+                return true;
             }
             break;
         default:
