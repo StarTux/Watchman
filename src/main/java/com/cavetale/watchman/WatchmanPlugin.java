@@ -195,7 +195,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             }
             break;
         case "rollback":
-            if (player.hasMetadata(META_LOOKUP)) {
+            if (args.length == 1 && player != null && player.hasMetadata(META_LOOKUP)) {
                 @SuppressWarnings("unchecked")
                 List<SQLAction> actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
                 sender.sendMessage("Attempting to roll back " + actions.size() + " actions...");
@@ -237,6 +237,17 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 }
                 sender.sendMessage("Successfully rolled back " + count + " actions");
             }
+            break;
+        case "clear":
+            if (args.length == 1 && player != null) {
+                if (player.hasMetadata(META_LOOKUP)) {
+                    player.removeMetadata(META_LOOKUP, this);
+                    player.sendMessage("Search cleared");
+                } else {
+                    player.sendMessage("You have no stored search");
+                }
+            }
+            break;
         default:
             break;
         }
