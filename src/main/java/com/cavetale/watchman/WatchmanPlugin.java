@@ -1,5 +1,6 @@
 package com.cavetale.watchman;
 
+import com.cavetale.dirty.Dirty;
 import com.winthier.playercache.PlayerCache;
 import com.winthier.sql.SQLDatabase;
 import com.winthier.sql.SQLTable;
@@ -8,10 +9,13 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import javax.persistence.PersistenceException;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -20,18 +24,22 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.json.simple.JSONValue;
 
 public final class WatchmanPlugin extends JavaPlugin implements Listener {
     private SQLDatabase db;
     public static final String TOOL_KEY = "Watchman.Tool";
+    static final String META_LOOKUP = "watchman.lookup";
 
     @Override
     public void onEnable() {
@@ -181,9 +189,53 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     actionIndex += 1;
                     sendActionInfo(sender, action, actionIndex);
                 }
+                player.setMetadata(META_LOOKUP, new FixedMetadataValue(this, actions));
+                player.sendMessage(actions.size() + " actions stored");
                 return true;
             }
             break;
+        case "rollback":
+            if (player.hasMetadata(META_LOOKUP)) {
+                @SuppressWarnings("unchecked")
+                List<SQLAction> actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+                sender.sendMessage("Attempting to roll back " + actions.size() + " actions...");
+                int count = 0;
+                for (SQLAction action: actions) {
+                    SQLAction.Type type;
+                    try {
+                        type = SQLAction.Type.valueOf(action.getAction().toUpperCase());
+                    } catch (IllegalArgumentException iae) {
+                        iae.printStackTrace();
+                        continue;
+                    }
+                    switch (type) {
+                    case BLOCK_BREAK:
+                        World world = Bukkit.getWorld(action.getWorld());
+                        if (world == null) continue;
+                        Block block = world.getBlockAt(action.getX(), action.getY(), action.getZ());
+                        Material oldMaterial;
+                        try {
+                            oldMaterial = Material.valueOf(action.getOldType().toUpperCase());
+                        } catch (IllegalArgumentException iae) {
+                            iae.printStackTrace();
+                            continue;
+                        }
+                        block.setType(oldMaterial, false);
+                        String tag = action.getOldTag();
+                        if (tag != null) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> json = (Map<String, Object>)JSONValue.parse(tag);
+                            if (json != null) {
+                                Dirty.setBlockTag(block, json);
+                            }
+                        }
+                        count += 1;
+                        break;
+                    default: break;
+                    }
+                }
+                sender.sendMessage("Successfully rolled back " + count + " actions");
+            }
         default:
             break;
         }
@@ -206,7 +258,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         store(new SQLAction()
               .setNow().setActionType(SQLAction.Type.BLOCK_BREAK)
-              .setActor(event.getPlayer())
+              .setActorPlayer(event.getPlayer())
               .setOldState(event.getBlock())
               .setNewState(Material.AIR));
     }
@@ -215,7 +267,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
         store(new SQLAction()
               .setNow().setActionType(SQLAction.Type.BLOCK_PLACE)
-              .setActor(event.getPlayer())
+              .setActorPlayer(event.getPlayer())
               .setOldState(event.getBlockReplacedState())
               .setNewState(event.getBlockPlaced()));
     }
@@ -226,7 +278,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         if (event.getEntity().getKiller() == null) return;
         store(new SQLAction()
               .setNow().setActionType(SQLAction.Type.ENTITY_KILL)
-              .setActor(event.getEntity().getKiller())
+              .setActorPlayer(event.getEntity().getKiller())
               .setOldState(event.getEntity()));
     }
 
@@ -235,7 +287,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         store(new SQLAction()
               .setNow().setActionType(SQLAction.Type.PLAYER_JOIN)
-              .setActor(event.getPlayer())
+              .setActorPlayer(event.getPlayer())
               .setOldState(event.getPlayer().getLocation()));
     }
 
@@ -243,8 +295,28 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         store(new SQLAction()
               .setNow().setActionType(SQLAction.Type.PLAYER_QUIT)
-              .setActor(event.getPlayer())
+              .setActorPlayer(event.getPlayer())
               .setOldState(event.getPlayer().getLocation()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onEntityExplode(EntityExplodeEvent event) {
+        for (Block block: event.blockList()) {
+            store(new SQLAction()
+                  .setNow().setActionType(SQLAction.Type.BLOCK_EXPLODE)
+                  .setActorEntity(event.getEntity())
+                  .setOldState(block));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockExplode(BlockExplodeEvent event) {
+        for (Block block: event.blockList()) {
+            store(new SQLAction()
+                  .setNow().setActionType(SQLAction.Type.BLOCK_EXPLODE)
+                  .setActorBlock(event.getBlock())
+                  .setOldState(block));
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)

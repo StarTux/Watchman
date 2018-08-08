@@ -42,6 +42,7 @@ public final class SQLAction {
         PLAYER_QUIT,
         BLOCK_BREAK,
         BLOCK_PLACE,
+        BLOCK_EXPLODE,
         ENTITY_KILL;
     }
 
@@ -55,17 +56,23 @@ public final class SQLAction {
         return this;
     }
 
-    public SQLAction setActor(Player player) {
+    public SQLAction setActorPlayer(Player player) {
         this.actorId = player.getUniqueId();
         this.actorType = player.getType().name().toLowerCase();
         this.actorName = player.getName();
         return this;
     }
 
-    public SQLAction setActor(Entity entity) {
+    public SQLAction setActorEntity(Entity entity) {
         this.actorId = entity.getUniqueId();
         this.actorType = entity.getType().name().toLowerCase();
         this.actorName = entity.getCustomName();
+        return this;
+    }
+
+    public SQLAction setActorBlock(Block block) {
+        this.actorType = "block";
+        this.setActorName(block.getType().name().toLowerCase());
         return this;
     }
 
