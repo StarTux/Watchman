@@ -210,6 +210,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     }
                     switch (type) {
                     case BLOCK_BREAK:
+                    case BLOCK_EXPLODE:
                         World world = Bukkit.getWorld(action.getWorld());
                         if (world == null) continue;
                         Block block = world.getBlockAt(action.getX(), action.getY(), action.getZ());
