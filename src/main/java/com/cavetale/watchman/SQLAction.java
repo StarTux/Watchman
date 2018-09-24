@@ -19,7 +19,7 @@ import org.json.simple.JSONValue;
 
 @Data @Table(name = "actions")
 public final class SQLAction {
-    private static final int MAX_TAG_LENGTH = 65536;
+    private static final int MAX_TAG_LENGTH = 8192;
     @Id private Integer id;
     // Action
     @Column(nullable = false) private Date time;
