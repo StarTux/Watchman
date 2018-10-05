@@ -11,6 +11,8 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import javax.persistence.PersistenceException;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -37,16 +39,20 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.json.simple.JSONValue;
 
 public final class WatchmanPlugin extends JavaPlugin implements Listener {
-    private SQLDatabase database;
+    private SQLDatabase database, asyncDatabase;
     public static final String TOOL_KEY = "Watchman.Tool";
     static final String META_LOOKUP = "watchman.lookup";
+    private final LinkedBlockingQueue<SQLAction> saveQueue = new LinkedBlockingQueue();
+    private int saveCount = 0;
 
     @Override
     public void onEnable() {
         database = new SQLDatabase(this);
         database.registerTables(SQLAction.class);
         database.createAllTables();
+        asyncDatabase = database.async();
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getScheduler().runTaskAsynchronously(this, this::saveTask);
     }
 
     @Override
@@ -250,22 +256,35 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 return true;
             }
             break;
+        case "debug":
+            if (args.length == 1) {
+                sender.sendMessage("Actions saved: " + saveCount);
+            }
+            break;
         default:
             break;
         }
         return false;
     }
 
+    private void saveTask() {
+        while (isEnabled()) {
+            try {
+                SQLAction action = saveQueue.poll(1, TimeUnit.SECONDS);
+                if (action != null) {
+                    asyncDatabase.save(action);
+                    saveCount += 1;
+                } else {
+                    Thread.sleep(1000L);
+                }
+            } catch (InterruptedException ie) {
+            }
+        }
+    }
+
     void store(SQLAction action) {
         action.truncate();
-        try {
-            database.saveAsync(action, null);
-        } catch (PersistenceException pe) {
-            System.err.println("Row: " + action.toString());
-            if (action.getOldTag() != null) System.err.println("old_tag.length=" + action.getOldTag().length());
-            if (action.getNewTag() != null) System.err.println("new_tag.length=" + action.getNewTag().length());
-            pe.printStackTrace();
-        }
+        saveQueue.offer(action);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
