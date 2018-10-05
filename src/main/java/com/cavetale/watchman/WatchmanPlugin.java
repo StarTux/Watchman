@@ -259,6 +259,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         case "debug":
             if (args.length == 1) {
                 sender.sendMessage("Actions saved: " + saveCount);
+                return true;
             }
             break;
         default:
