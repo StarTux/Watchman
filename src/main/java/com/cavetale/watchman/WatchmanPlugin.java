@@ -37,15 +37,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.json.simple.JSONValue;
 
 public final class WatchmanPlugin extends JavaPlugin implements Listener {
-    private SQLDatabase db;
+    private SQLDatabase database;
     public static final String TOOL_KEY = "Watchman.Tool";
     static final String META_LOOKUP = "watchman.lookup";
 
     @Override
     public void onEnable() {
-        db = new SQLDatabase(this);
-        db.registerTables(SQLAction.class);
-        db.createAllTables();
+        database = new SQLDatabase(this);
+        database.registerTables(SQLAction.class);
+        database.createAllTables();
         getServer().getPluginManager().registerEvents(this, this);
     }
 
@@ -88,7 +88,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 boolean globalSearch = false;
                 // TODO: Make a map first, search later.
                 // TODO: Move to own thread. Will require new SQLDatabase for thread safety
-                SQLTable<SQLAction>.Finder search = db.find(SQLAction.class);
+                SQLTable<SQLAction>.Finder search = database.find(SQLAction.class);
                 for (int i = 1; i < args.length; i += 1) {
                     String arg = args[i];
                     String[] toks = arg.split(":", 2);
@@ -259,7 +259,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     void store(SQLAction action) {
         action.truncate();
         try {
-            db.save(action);
+            database.saveAsync(action, null);
         } catch (PersistenceException pe) {
             System.err.println("Row: " + action.toString());
             if (action.getOldTag() != null) System.err.println("old_tag.length=" + action.getOldTag().length());
@@ -353,7 +353,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         String world = block.getWorld().getName();
         int x = block.getX(), y = block.getY(), z = block.getZ();
-        List<SQLAction> actions = db.find(SQLAction.class)
+        List<SQLAction> actions = database.find(SQLAction.class)
             .eq("world", world)
             .eq("x", x)
             .eq("y", y)
