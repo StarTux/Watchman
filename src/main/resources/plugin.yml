@@ -14,7 +14,20 @@ commands:
     permission: watchman.watchman
     usage: |-
       Usage:
-      /watchman tool - Toggle block logging tool
+      /wm tool - Toggle block logging tool
+      /wm rollback [id] - Rollback found records
+      /wm clear - Clear your search
+      /wm page PAGE - View search page
+      /wm info ID - Detailed search result info
+      /wm lookup ARGS... - Search for records
+        (a)ction:ACTION - Action type
+        (c)enter:X,Y - Center location
+        (n)ew:TYPE - Placed block
+        (o)ld:TYPE - Broken block or killed entity
+        (p)layer:NAME - Player search
+        (r)adius:RAD|world|global - Search radius
+        (t)time:SECONDS - Limit time
+        (w)orld:WORLD - World name
 permissions:
   watchman.watchman:
     description: use /watchman

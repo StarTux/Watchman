@@ -1,23 +1,24 @@
 package com.cavetale.watchman;
 
-import com.cavetale.dirty.Dirty;
-import com.winthier.playercache.PlayerCache;
+import com.winthier.generic_events.GenericEvents;
 import com.winthier.sql.SQLDatabase;
 import com.winthier.sql.SQLTable;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import javax.persistence.PersistenceException;
-import org.bukkit.Bukkit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.Getter;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -36,32 +37,38 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.json.simple.JSONValue;
 
 public final class WatchmanPlugin extends JavaPlugin implements Listener {
-    private SQLDatabase database, asyncDatabase;
-    public static final String TOOL_KEY = "Watchman.Tool";
+    // Constants
+    public static final String TOOL_KEY = "watchman.Tool";
     static final String META_LOOKUP = "watchman.lookup";
-    private final LinkedBlockingQueue<SQLAction> saveQueue = new LinkedBlockingQueue();
-    private int saveCount = 0;
+    static final String META_LOOKUP_META = "watchman.lookup.meta";
+    // Members
+    @Getter private static WatchmanPlugin instance;
+    private SQLDatabase database;
+    private List<SQLAction> consoleSearch = null;
 
     @Override
     public void onEnable() {
+        instance = this;
         database = new SQLDatabase(this);
         database.registerTables(SQLAction.class);
         database.createAllTables();
-        asyncDatabase = database.async();
         getServer().getPluginManager().registerEvents(this, this);
-        getServer().getScheduler().runTaskAsynchronously(this, this::saveTask);
     }
 
     @Override
     public void onDisable() {
+        for (Player player: getServer().getOnlinePlayers()) {
+            player.removeMetadata(TOOL_KEY, this);
+            player.removeMetadata(META_LOOKUP, this);
+            player.removeMetadata(META_LOOKUP_META, this);
+        }
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
-        Player player = sender instanceof Player ? (Player)sender : null;
+        final Player player = sender instanceof Player ? (Player)sender : null;
         if (args.length == 0) return false;
         switch (args[0]) {
         case "tool":
@@ -73,27 +80,23 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 boolean hasTool = player.hasMetadata(TOOL_KEY);
                 if (hasTool) {
                     player.removeMetadata(TOOL_KEY, this);
-                    sender.sendMessage("Watchman tool disabled");
+                    sender.sendMessage(ChatColor.YELLOW + "Watchman tool disabled");
                 } else {
                     player.setMetadata(TOOL_KEY, new FixedMetadataValue(this, true));
-                    player.sendMessage("Watchman tool enabled");
+                    player.sendMessage(ChatColor.GREEN + "Watchman tool enabled");
                 }
                 return true;
             }
             break;
-        case "search":
-        case "s":
         case "lookup":
         case "l":
             if (args.length > 0) {
                 Location location = player != null ? player.getLocation() : getServer().getWorlds().get(0).getSpawnLocation();
-                String world = location.getWorld().getName();
-                int x = location.getBlockX();
-                int z = location.getBlockZ();
-                int radius = 128;
-                boolean globalSearch = false;
-                // TODO: Make a map first, search later.
-                // TODO: Move to own thread. Will require new SQLDatabase for thread safety
+                LookupMeta meta = new LookupMeta();
+                meta.world = location.getWorld().getName();
+                meta.cx = location.getBlockX();
+                meta.cz = location.getBlockZ();
+                meta.radius = 12;
                 SQLTable<SQLAction>.Finder search = database.find(SQLAction.class);
                 for (int i = 1; i < args.length; i += 1) {
                     String arg = args[i];
@@ -102,27 +105,29 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     switch (toks[0]) {
                     case "player": case "p":
                         if (true) {
-                            UUID uuid = PlayerCache.uuidForName(toks[1]);
+                            UUID uuid = GenericEvents.cachedPlayerUuid(toks[1]);
                             if (uuid == null) {
                                 sender.sendMessage("Unknown player: " + toks[1]);
                                 return true;
                             }
                             search.eq("actorId", uuid);
+                            meta.player = uuid;
                         }
                         break;
                     case "action": case "a":
                         try {
                             SQLAction.Type action = SQLAction.Type.valueOf(toks[1].toUpperCase());
                             search.eq("action", action.name().toLowerCase());
+                            meta.action = action;
                         } catch (IllegalArgumentException iae) {
                             sender.sendMessage("Unknown action: " + toks[1]);
                             return true;
                         }
                         break;
                     case "world": case "w":
-                        world = toks[1];
+                        meta.world = toks[1];
                         break;
-                    case "location": case "l":
+                    case "center": case "c":
                         if (true) {
                             String[] locs = toks[1].split(",", 2);
                             if (locs.length != 2) {
@@ -130,8 +135,8 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                                 return true;
                             }
                             try {
-                                x = Integer.parseInt(locs[0]);
-                                z = Integer.parseInt(locs[1]);
+                                meta.cx = Integer.parseInt(locs[0]);
+                                meta.cz = Integer.parseInt(locs[1]);
                             } catch (NumberFormatException nfe) {
                                 sender.sendMessage("Invalid coordinates: " + toks[1]);
                                 return true;
@@ -141,11 +146,14 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     case "radius": case "r":
                         switch (toks[1]) {
                         case "global": case "g":
-                            globalSearch = true;
+                            meta.global = true;
+                            break;
+                        case "world": case "w":
+                            meta.worldwide = true;
                             break;
                         default:
                             try {
-                                radius = Integer.parseInt(toks[1]);
+                                meta.radius = Integer.parseInt(toks[1]);
                             } catch (NumberFormatException nfe) {
                                 sender.sendMessage("Invalid radius: " + toks[1]);
                                 return true;
@@ -155,9 +163,11 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                         break;
                     case "old": case "o":
                         search.eq("oldType", toks[1]);
+                        meta.oldType = toks[1];
                         break;
                     case "new": case "n":
                         search.eq("newType", toks[1]);
+                        meta.newType = toks[1];
                         break;
                     case "time": case "t":
                         if (true) {
@@ -165,11 +175,12 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                             try {
                                 seconds = Long.parseLong(toks[1]);
                             } catch (NumberFormatException nfe) {
-                                sender.sendMessage("Secons expected, got: " + toks[1]);
+                                sender.sendMessage("Seconds expected, got: " + toks[1]);
                                 return true;
                             }
                             Date time = new Date(System.currentTimeMillis() - (seconds * 1000));
                             search.gt("time", time);
+                            meta.after = time.getTime();
                         }
                         break;
                     default:
@@ -177,78 +188,87 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                         return true;
                     }
                 }
-                if (!globalSearch) {
-                    search.eq("world", world);
-                    search.gt("x", x - radius);
-                    search.lt("x", x + radius);
-                    search.gt("z", z - radius);
-                    search.lt("z", z + radius);
+                if (!meta.global) {
+                    search.eq("world", meta.world);
+                    if (!meta.worldwide) {
+                        search.gt("x", meta.cx - meta.radius);
+                        search.lt("x", meta.cx + meta.radius);
+                        search.gt("z", meta.cz - meta.radius);
+                        search.lt("z", meta.cz + meta.radius);
+                    }
                 }
                 search.orderByDescending("time");
-                long time = System.nanoTime();
-                List<SQLAction> actions = search.findList();
-                time = System.nanoTime() - time;
-                double dtime = (double)time / 1000000000.0;
-                sender.sendMessage(String.format("Time elapsed: %.04f", dtime));
-                int actionIndex = 0;
-                for (SQLAction action: actions) {
-                    actionIndex += 1;
-                    sendActionInfo(sender, action, actionIndex);
-                }
-                player.setMetadata(META_LOOKUP, new FixedMetadataValue(this, actions));
-                player.sendMessage(actions.size() + " actions stored");
-                return true;
-            }
-            break;
-        case "rollback":
-            if (args.length == 1 && player != null && player.hasMetadata(META_LOOKUP)) {
-                @SuppressWarnings("unchecked")
-                List<SQLAction> actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
-                sender.sendMessage("Attempting to roll back " + actions.size() + " actions...");
-                int count = 0;
-                for (SQLAction action: actions) {
-                    SQLAction.Type type;
-                    try {
-                        type = SQLAction.Type.valueOf(action.getAction().toUpperCase());
-                    } catch (IllegalArgumentException iae) {
-                        iae.printStackTrace();
-                        continue;
-                    }
-                    switch (type) {
-                    case BLOCK_BREAK:
-                    case BLOCK_EXPLODE:
-                        World world = Bukkit.getWorld(action.getWorld());
-                        if (world == null) continue;
-                        Block block = world.getBlockAt(action.getX(), action.getY(), action.getZ());
-                        Material oldMaterial;
-                        try {
-                            oldMaterial = Material.valueOf(action.getOldType().toUpperCase());
-                        } catch (IllegalArgumentException iae) {
-                            iae.printStackTrace();
-                            continue;
-                        }
-                        block.setType(oldMaterial, false);
-                        String tag = action.getOldTag();
-                        if (tag != null) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> json = (Map<String, Object>)JSONValue.parse(tag);
-                            if (json != null) {
-                                Dirty.setBlockTag(block, json);
+                if (player != null) {
+                    player.removeMetadata(META_LOOKUP, this);
+                    player.removeMetadata(META_LOOKUP_META, this);
+                    player.sendMessage(ChatColor.YELLOW + "Searching...");
+                    search.findListAsync((actions) -> {
+                            if (!player.isValid()) return;
+                            if (actions.isEmpty()) {
+                                player.sendMessage(ChatColor.RED + "Nothing found.");
+                                return;
                             }
-                        }
-                        count += 1;
-                        break;
-                    default: break;
-                    }
+                            player.sendMessage("" + ChatColor.YELLOW + actions.size() + " actions found");
+                            player.setMetadata(META_LOOKUP, new FixedMetadataValue(this, actions));
+                            player.setMetadata(META_LOOKUP_META, new FixedMetadataValue(this, meta));
+                            showActionPage(player, actions, meta, 0);
+                        });
+                } else {
+                    getLogger().info("Searching...");
+                    search.findListAsync((actions) -> {
+                            this.consoleSearch = actions;
+                            getLogger().info("Found " + actions.size() + " results. Use /wm page PAGE");
+                        });
                 }
-                sender.sendMessage("Successfully rolled back " + count + " actions");
                 return true;
             }
             break;
+        case "rollback": {
+            if (args.length != 1 && args.length != 2) return false;
+            List<SQLAction> actions;
+            if (player != null) {
+                if (!player.hasMetadata(META_LOOKUP)) {
+                    player.sendMessage(ChatColor.RED + "Make a lookup first.");
+                    return true;
+                }
+                actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+            } else {
+                if (consoleSearch == null) {
+                    getLogger().info("No records available");
+                    return true;
+                }
+                actions = consoleSearch;
+            }
+            if (args.length == 2) {
+                int index;
+                try {
+                    index = Integer.parseInt(args[1]);
+                } catch (NumberFormatException nfe) {
+                    index = -1;
+                }
+                if (index < 0 || index >= actions.size()) {
+                    sender.sendMessage(ChatColor.RED + "Invalid lookup index " + args[1]);
+                    return true;
+                }
+                actions = Arrays.asList(actions.get(index));
+                sender.sendMessage(ChatColor.YELLOW + "Attempting to roll back action with id " + index + "...");
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "Attempting to roll back " + actions.size() + " actions...");
+            }
+            int count = 0;
+            for (SQLAction action: actions) {
+                if (action.rollback()) {
+                    count += 1;
+                }
+            }
+            sender.sendMessage("Successfully rolled back " + count + " actions");
+            return true;
+        }
         case "clear":
             if (args.length == 1 && player != null) {
                 if (player.hasMetadata(META_LOOKUP)) {
                     player.removeMetadata(META_LOOKUP, this);
+                    player.removeMetadata(META_LOOKUP_META, this);
                     player.sendMessage("Search cleared");
                 } else {
                     player.sendMessage("You have no stored search");
@@ -256,36 +276,139 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 return true;
             }
             break;
-        case "debug":
-            if (args.length == 1) {
-                sender.sendMessage("Actions saved: " + saveCount);
+        case "page": {
+            if (args.length != 2) return false;
+            int num;
+            try {
+                num = Integer.parseInt(args[1]);
+            } catch (NumberFormatException nfe) {
+                num = -1;
+            }
+            if (num < 0) {
+                sender.sendMessage(ChatColor.RED + "Invalid page: " + args[1]);
                 return true;
             }
-            break;
+            if (player != null) {
+                if (!player.hasMetadata(META_LOOKUP)) {
+                    player.sendMessage(ChatColor.RED + "No records available");
+                    return true;
+                }
+                List<SQLAction> actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+                LookupMeta meta;
+                if (!player.hasMetadata(META_LOOKUP)) {
+                    meta = new LookupMeta();
+                } else {
+                    meta = (LookupMeta)player.getMetadata(META_LOOKUP_META).get(0).value();
+                }
+                showActionPage(player, actions, meta, num - 1);
+            } else {
+                if (consoleSearch == null) {
+                    getLogger().info("No records available");
+                    return true;
+                }
+                int page = num - 1;
+                int pageLen = 10;
+                int totalPageCount = (consoleSearch.size() - 1) / pageLen + 1;
+                int fromIndex = page * pageLen;
+                int toIndex = fromIndex + pageLen - 1;
+                getLogger().info("Page " + num + "/" + totalPageCount);
+                for (int i = fromIndex; i <= toIndex; i += 1) {
+                    if (i < 0 || i >= consoleSearch.size()) continue;
+                    SQLAction action = consoleSearch.get(i);
+                    action.showDetails(sender, i);
+                }
+            }
+            return true;
+        }
+        case "info": {
+            if (player == null) {
+                sender.sendMessage("Player expected");
+                return true;
+            }
+            if (args.length != 2) return false;
+            int num;
+            try {
+                num = Integer.parseInt(args[1]);
+            } catch (NumberFormatException nfe) {
+                num = -1;
+            }
+            if (num < 0) {
+                player.sendMessage(ChatColor.RED + "Invalid page: " + args[1]);
+                return true;
+            }
+            if (!player.hasMetadata(META_LOOKUP)) {
+                player.sendMessage(ChatColor.RED + "No records available");
+                return true;
+            }
+            List<SQLAction> actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+            if (num >= actions.size()) {
+                player.sendMessage(ChatColor.RED + "Invalid action index: " + num);
+                return true;
+            }
+            SQLAction action = actions.get(num);
+            action.showDetails(player, num);
+            return true;
+        }
+        case "debug":
+            return true;
         default:
             break;
         }
         return false;
     }
 
-    private void saveTask() {
-        while (isEnabled()) {
-            try {
-                SQLAction action = saveQueue.poll(1, TimeUnit.SECONDS);
-                if (action != null) {
-                    asyncDatabase.save(action);
-                    saveCount += 1;
-                } else {
-                    Thread.sleep(1000L);
-                }
-            } catch (InterruptedException ie) {
-            }
+    private List<String> matchTab(String arg, List<String> args) {
+        return args.stream().filter(a -> a.startsWith(arg)).collect(Collectors.toList());
+    }
+
+    private List<String> matchTab(String arg, Stream<String> args) {
+        return args.filter(a -> a.startsWith(arg)).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command comand, String alias, String[] args) {
+        String arg = args.length == 0 ? "" : args[args.length - 1];
+        if (args.length == 1) {
+            return matchTab(arg, Arrays.asList("tool", "rollback", "clear", "page", "info", "lookup"));
         }
+        if (args.length > 1 && (args[0].equals("lookup") || args[0].equals("l"))) {
+            if (arg.startsWith("action:") || arg.startsWith("a:")) {
+                return matchTab(arg, Arrays.stream(SQLAction.Type.values()).map(v -> arg.split(":", 2)[0] + ":" + v.name().toLowerCase()));
+            }
+            if (arg.startsWith("radius:") || arg.startsWith("r:")) {
+                String l = arg.split(":", 2)[0];
+                try {
+                    int num = Integer.parseInt(arg.split(":", 2)[1]);
+                    return matchTab(arg, Arrays.asList(l + ":" + num, l + ":" + (num * 10), l + ":global", l + ":world"));
+                } catch (NumberFormatException nfe) { }
+                return matchTab(arg, Arrays.asList(l + ":" + 8, l + ":global", l + ":world"));
+            }
+            return matchTab(arg, Arrays.asList("player:", "action:", "world:", "center:", "radius:", "old:", "new:", "time:"));
+        }
+        if (args.length == 2 && args[0].equals("page")) {
+            List<SQLAction> actions;
+            int pageLen;
+            if (sender instanceof Player) {
+                Player player = (Player)sender;
+                if (!player.hasMetadata(META_LOOKUP)) return Collections.emptyList();
+                actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+                pageLen = 5;
+            } else {
+                if (consoleSearch == null) return Collections.emptyList();
+                actions = consoleSearch;
+                pageLen = 10;
+            }
+            int totalPageCount = (actions.size() - 1) / pageLen + 1;
+            List<String> ls = new ArrayList(totalPageCount);
+            for (int i = 0; i < totalPageCount; i += 1) ls.add("" + (i + 1));
+            return matchTab(arg, ls);
+        }
+        return null;
     }
 
     void store(SQLAction action) {
         action.truncate();
-        saveQueue.offer(action);
+        database.insertAsync(action, null);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -373,81 +496,81 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         String world = block.getWorld().getName();
         int x = block.getX(), y = block.getY(), z = block.getZ();
-        List<SQLAction> actions = database.find(SQLAction.class)
-            .eq("world", world)
-            .eq("x", x)
-            .eq("y", y)
-            .eq("z", z)
+        LookupMeta meta = new LookupMeta();
+        meta.world = world;
+        meta.location = new LookupMeta.Vec(x, y, z);
+        player.removeMetadata(META_LOOKUP, this);
+        player.removeMetadata(META_LOOKUP_META, this);
+        database.find(SQLAction.class)
+            .eq("world", world).eq("x", x).eq("y", y).eq("z", z)
             .orderByDescending("time")
-            .findList();
-        if (actions.isEmpty()) {
-            player.sendMessage(String.format("No actions to show at %s:%d,%d,%d.", world, x, y, z));
-            return;
-        }
-        player.sendMessage(String.format("%d actions at %s:%d,%d,%d:", actions.size(), world, x, y, z));
-        int actionIndex = 0;
-        for (SQLAction action: actions) {
-            actionIndex += 1;
-            sendActionInfo(player, action, actionIndex);
-        }
+            .findListAsync((actions) -> {
+                    if (!player.isValid()) return;
+                    if (actions.isEmpty()) {
+                        player.sendMessage(ChatColor.RED + String.format("No actions to show at %d,%d,%d.", x, y, z));
+                        return;
+                    }
+                    player.sendMessage(ChatColor.YELLOW + String.format("%d actions at %d,%d,%d.", actions.size(), x, y, z));
+                    player.setMetadata(META_LOOKUP, new FixedMetadataValue(this, actions));
+                    player.setMetadata(META_LOOKUP_META, new FixedMetadataValue(this, meta));
+                    showActionPage(player, actions, meta, 0);
+                });
     }
 
-    public void sendActionInfo(CommandSender sender, SQLAction action, int actionIndex) {
+    // --- Chat UI
+
+    void showActionPage(Player player, List<SQLAction> actions, LookupMeta meta, int page) {
+        int pageLen = 5;
+        int totalPageCount = (actions.size() - 1) / pageLen + 1;
+        player.sendMessage(ChatColor.YELLOW + "Watchman log page " + (page + 1) + "/" + totalPageCount + ChatColor.GRAY + ChatColor.ITALIC + " (" + actions.size() + " logs)");
         StringBuilder sb = new StringBuilder();
-        sb.append(actionIndex);
-        sb.append(" ");
-        GregorianCalendar calNow = new GregorianCalendar();
-        calNow.setTime(new Date());
-        GregorianCalendar calThen = new GregorianCalendar();
-        calThen.setTime(action.getTime());
-        if (calNow.get(Calendar.YEAR) != calThen.get(Calendar.YEAR)) {
-            sb.append(new SimpleDateFormat("YY/MMM/dd HH:mm").format(action.getTime()));
-        } else if (calNow.get(Calendar.MONTH) != calThen.get(Calendar.MONTH)) {
-            sb.append(new SimpleDateFormat("MMM/dd HH:mm").format(action.getTime()));
-        } else if (calNow.get(Calendar.DAY_OF_MONTH) != calThen.get(Calendar.DAY_OF_MONTH)) {
-            sb.append(new SimpleDateFormat("EEE/dd HH:mm").format(action.getTime()));
+        if (meta.location != null) {
+            sb.append("location=").append(meta.world)
+                .append(":").append(meta.location.x)
+                .append(",").append(meta.location.y)
+                .append(",").append(meta.location.y);
+        } else if (meta.global) {
+            sb.append("global");
+        } else if (meta.worldwide) {
+            sb.append("worldwide");
+            sb.append(" world=").append(meta.world);
         } else {
-            sb.append(new SimpleDateFormat("HH:mm:ss").format(action.getTime()));
+            sb.append("radius=").append(meta.radius);
+            sb.append(" center=").append(meta.world)
+                .append(":").append(meta.cx)
+                .append(",").append(meta.cz);
         }
-        sb.append(" ");
-        if (action.getActorType().equals("player")) {
-            sb.append(PlayerCache.nameForUuid(action.getActorId()));
+        if (meta.action != null) sb.append(" action=").append(meta.action.human);
+        if (meta.oldType != null) sb.append(" old=").append(meta.oldType);
+        if (meta.newType != null) sb.append(" new=").append(meta.newType);
+        if (meta.after != null) sb.append(" after=").append(new Date(meta.after));
+        player.sendMessage("Param: " + ChatColor.GRAY + sb.toString());
+        int fromIndex = page * pageLen;
+        int toIndex = fromIndex + pageLen - 1;
+        for (int i = fromIndex; i <= toIndex; i += 1) {
+            if (i >= actions.size()) continue;
+            SQLAction action = actions.get(i);
+            action.showShortInfo(player, meta, i);
+        }
+        // Prev and Next
+        ComponentBuilder cb = new ComponentBuilder("");
+        cb.append("[Prev]");
+        if (page > 0) {
+            cb.color(ChatColor.GOLD)
+                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/watchman page " + page))
+                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.GOLD + "/wm page " + page)));
         } else {
-            sb.append(action.getActorType());
+            cb.color(ChatColor.DARK_GRAY);
         }
-        sb.append(" ");
-        sb.append(action.getAction());
-        sb.append(" ");
-        sb.append(action.getWorld());
-        sb.append(":");
-        sb.append(action.getX());
-        sb.append(",");
-        sb.append(action.getY());
-        sb.append(",");
-        sb.append(action.getZ());
-        SQLAction.Type type = SQLAction.Type.valueOf(action.getAction().toUpperCase());
-        boolean showOld, showNew;
-        switch (type) {
-        case BLOCK_BREAK: showOld = true; showNew = false; break;
-        case BLOCK_PLACE: showOld = false; showNew = true; break;
-        case PLAYER_JOIN: showOld = false; showNew = false; break;
-        case PLAYER_QUIT: showOld = false; showNew = false; break;
-        default: showOld = true; showNew = true; break;
+        cb.append("  ").reset();
+        cb.append("[Next]");
+        if (page < totalPageCount - 1) {
+            cb.color(ChatColor.GOLD)
+                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/watchman page " + (page + 2)))
+                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.GOLD + "/wm page " + (page + 2))));
+        } else {
+            cb.color(ChatColor.DARK_GRAY);
         }
-        if (showOld && action.getOldType() != null) {
-            sb.append(" ");
-            sb.append(action.getOldType());
-            if (action.getOldTag() != null) {
-                sb.append(action.getOldTag());
-            }
-        }
-        if (showNew && action.getNewType() != null) {
-            sb.append(" ");
-            sb.append(action.getNewType());
-            if (action.getNewTag() != null) {
-                sb.append(action.getNewTag());
-            }
-        }
-        sender.sendMessage(sb.toString());
+        player.spigot().sendMessage(cb.create());
     }
 }
