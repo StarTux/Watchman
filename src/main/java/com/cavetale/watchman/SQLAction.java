@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.persistence.Column;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Table;
 import lombok.Data;
 import net.md_5.bungee.api.ChatColor;
@@ -30,24 +31,29 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.json.simple.JSONValue;
 
-@Data @Table(name = "actions")
+@Data
+@Table(name = "actions",
+       indexes = {@Index(name="id_actor_id", columnList="actor_id"),
+                  @Index(name="id_world", columnList="world"),
+                  @Index(name="id_action", columnList="action"),
+                  @Index(name="id_xz", columnList="x,z")})
 public final class SQLAction {
     private static final int MAX_TAG_LENGTH = 8192;
     @Id private Integer id;
     // Action
     @Column(nullable = false) private Date time;
-    @Column(nullable = false) private String action; // enum Type, e.g. block_break
+    @Column(nullable = false, length = 31) private String action; // enum Type, e.g. block_break
     // Actor
     @Column(nullable = true) private UUID actorId; // Player unique id
-    @Column(nullable = false) private String actorType; // Entity type
-    @Column(nullable = true) private String actorName; // Entity name
+    @Column(nullable = false, length = 63) private String actorType; // Entity type
+    @Column(nullable = true, length = 255) private String actorName; // Entity name
     // Object old state
-    @Column(nullable = false) private String world;
+    @Column(nullable = false, length = 31) private String world;
     @Column(nullable = false) private Integer x, y, z;
-    @Column(nullable = true) private String oldType; // e.g. diamond_block
+    @Column(nullable = true, length = 63) private String oldType; // e.g. diamond_block
     @Column(nullable = true, length = MAX_TAG_LENGTH) private String oldTag; // Old NBT tag, if available
     // Object new state
-    @Column(nullable = true) private String newType; // New material type, only for blocks (or spawned entities?)
+    @Column(nullable = true, length = 63) private String newType; // New material type, only for blocks (or spawned entities?)
     @Column(nullable = true, length = MAX_TAG_LENGTH) private String newTag; // New NBT tag, only for blocks, if available
 
     enum Type {
