@@ -76,7 +76,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 sender.sendMessage("Player expected");
                 return true;
             }
-            if (player.hasPermission("watchman.tool")) {
+            if (!player.hasPermission("watchman.tool")) {
                 player.sendMessage(ChatColor.RED + "You don't have permission");
                 return true;
             }
@@ -93,7 +93,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         }
         case "lookup":
         case "l": {
-            if (player != null && player.hasPermission("watchman.lookup")) {
+            if (player != null && !player.hasPermission("watchman.lookup")) {
                 player.sendMessage(ChatColor.RED + "You don't have permission");
                 return true;
             }
@@ -230,7 +230,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             return true;
         }
         case "rollback": {
-            if (player != null && player.hasPermission("watchman.rollback")) {
+            if (player != null && !player.hasPermission("watchman.rollback")) {
                 player.sendMessage(ChatColor.RED + "You don't have permission");
                 return true;
             }
