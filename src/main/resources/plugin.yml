@@ -32,3 +32,12 @@ permissions:
   watchman.watchman:
     description: use /watchman
     default: op
+  watchman.tool:
+    description: use /watchman tool
+    default: op
+  watchman.rollback:
+    description: use /watchman rollback
+    default: op
+  watchman.lookup:
+    description: use /watchman lookup
+    default: op

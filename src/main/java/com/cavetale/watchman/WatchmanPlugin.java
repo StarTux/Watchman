@@ -71,159 +71,169 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         final Player player = sender instanceof Player ? (Player)sender : null;
         if (args.length == 0) return false;
         switch (args[0]) {
-        case "tool":
-            if (args.length == 1) {
-                if (player == null) {
-                    sender.sendMessage("Player expected");
-                    return true;
-                }
-                boolean hasTool = player.hasMetadata(TOOL_KEY);
-                if (hasTool) {
-                    player.removeMetadata(TOOL_KEY, this);
-                    sender.sendMessage(ChatColor.YELLOW + "Watchman tool disabled");
-                } else {
-                    player.setMetadata(TOOL_KEY, new FixedMetadataValue(this, true));
-                    player.sendMessage(ChatColor.GREEN + "Watchman tool enabled");
-                }
+        case "tool": {
+            if (player == null) {
+                sender.sendMessage("Player expected");
                 return true;
             }
-            break;
+            if (player.hasPermission("watchman.tool")) {
+                player.sendMessage(ChatColor.RED + "You don't have permission");
+                return true;
+            }
+            if (args.length != 1) return false;
+            boolean hasTool = player.hasMetadata(TOOL_KEY);
+            if (hasTool) {
+                player.removeMetadata(TOOL_KEY, this);
+                sender.sendMessage(ChatColor.YELLOW + "Watchman tool disabled");
+            } else {
+                player.setMetadata(TOOL_KEY, new FixedMetadataValue(this, true));
+                player.sendMessage(ChatColor.GREEN + "Watchman tool enabled");
+            }
+            return true;
+        }
         case "lookup":
-        case "l":
-            if (args.length > 0) {
-                Location location = player != null ? player.getLocation() : getServer().getWorlds().get(0).getSpawnLocation();
-                LookupMeta meta = new LookupMeta();
-                meta.world = location.getWorld().getName();
-                meta.cx = location.getBlockX();
-                meta.cz = location.getBlockZ();
-                meta.radius = 12;
-                SQLTable<SQLAction>.Finder search = database.find(SQLAction.class);
-                for (int i = 1; i < args.length; i += 1) {
-                    String arg = args[i];
-                    String[] toks = arg.split(":", 2);
-                    if (toks.length != 2) return false;
-                    switch (toks[0]) {
-                    case "player": case "p":
-                        if (true) {
-                            UUID uuid = GenericEvents.cachedPlayerUuid(toks[1]);
-                            if (uuid == null) {
-                                sender.sendMessage("Unknown player: " + toks[1]);
-                                return true;
-                            }
-                            search.eq("actorId", uuid);
-                            meta.player = uuid;
+        case "l": {
+            if (player != null && player.hasPermission("watchman.lookup")) {
+                player.sendMessage(ChatColor.RED + "You don't have permission");
+                return true;
+            }
+            if (args.length == 0) return false;
+            Location location = player != null ? player.getLocation() : getServer().getWorlds().get(0).getSpawnLocation();
+            LookupMeta meta = new LookupMeta();
+            meta.world = location.getWorld().getName();
+            meta.cx = location.getBlockX();
+            meta.cz = location.getBlockZ();
+            meta.radius = 12;
+            SQLTable<SQLAction>.Finder search = database.find(SQLAction.class);
+            for (int i = 1; i < args.length; i += 1) {
+                String arg = args[i];
+                String[] toks = arg.split(":", 2);
+                if (toks.length != 2) return false;
+                switch (toks[0]) {
+                case "player": case "p":
+                    if (true) {
+                        UUID uuid = GenericEvents.cachedPlayerUuid(toks[1]);
+                        if (uuid == null) {
+                            sender.sendMessage("Unknown player: " + toks[1]);
+                            return true;
                         }
-                        break;
-                    case "action": case "a":
+                        search.eq("actorId", uuid);
+                        meta.player = uuid;
+                    }
+                    break;
+                case "action": case "a":
+                    try {
+                        SQLAction.Type action = SQLAction.Type.valueOf(toks[1].toUpperCase());
+                        search.eq("action", action.name().toLowerCase());
+                        meta.action = action;
+                    } catch (IllegalArgumentException iae) {
+                        sender.sendMessage("Unknown action: " + toks[1]);
+                        return true;
+                    }
+                    break;
+                case "world": case "w":
+                    meta.world = toks[1];
+                    break;
+                case "center": case "c":
+                    if (true) {
+                        String[] locs = toks[1].split(",", 2);
+                        if (locs.length != 2) {
+                            sender.sendMessage("2 comma separated coordinates expected, got: " + toks[1]);
+                            return true;
+                        }
                         try {
-                            SQLAction.Type action = SQLAction.Type.valueOf(toks[1].toUpperCase());
-                            search.eq("action", action.name().toLowerCase());
-                            meta.action = action;
-                        } catch (IllegalArgumentException iae) {
-                            sender.sendMessage("Unknown action: " + toks[1]);
+                            meta.cx = Integer.parseInt(locs[0]);
+                            meta.cz = Integer.parseInt(locs[1]);
+                        } catch (NumberFormatException nfe) {
+                            sender.sendMessage("Invalid coordinates: " + toks[1]);
+                            return true;
+                        }
+                    }
+                    break;
+                case "radius": case "r":
+                    switch (toks[1]) {
+                    case "global": case "g":
+                        meta.global = true;
+                        break;
+                    case "world": case "w":
+                        meta.worldwide = true;
+                        break;
+                    default:
+                        try {
+                            meta.radius = Integer.parseInt(toks[1]);
+                        } catch (NumberFormatException nfe) {
+                            sender.sendMessage("Invalid radius: " + toks[1]);
                             return true;
                         }
                         break;
-                    case "world": case "w":
-                        meta.world = toks[1];
-                        break;
-                    case "center": case "c":
-                        if (true) {
-                            String[] locs = toks[1].split(",", 2);
-                            if (locs.length != 2) {
-                                sender.sendMessage("2 comma separated coordinates expected, got: " + toks[1]);
-                                return true;
-                            }
-                            try {
-                                meta.cx = Integer.parseInt(locs[0]);
-                                meta.cz = Integer.parseInt(locs[1]);
-                            } catch (NumberFormatException nfe) {
-                                sender.sendMessage("Invalid coordinates: " + toks[1]);
-                                return true;
-                            }
-                        }
-                        break;
-                    case "radius": case "r":
-                        switch (toks[1]) {
-                        case "global": case "g":
-                            meta.global = true;
-                            break;
-                        case "world": case "w":
-                            meta.worldwide = true;
-                            break;
-                        default:
-                            try {
-                                meta.radius = Integer.parseInt(toks[1]);
-                            } catch (NumberFormatException nfe) {
-                                sender.sendMessage("Invalid radius: " + toks[1]);
-                                return true;
-                            }
-                            break;
-                        }
-                        break;
-                    case "old": case "o":
-                        search.eq("oldType", toks[1]);
-                        meta.oldType = toks[1];
-                        break;
-                    case "new": case "n":
-                        search.eq("newType", toks[1]);
-                        meta.newType = toks[1];
-                        break;
-                    case "time": case "t":
-                        if (true) {
-                            long seconds;
-                            try {
-                                seconds = Long.parseLong(toks[1]);
-                            } catch (NumberFormatException nfe) {
-                                sender.sendMessage("Seconds expected, got: " + toks[1]);
-                                return true;
-                            }
-                            Date time = new Date(System.currentTimeMillis() - (seconds * 1000));
-                            search.gt("time", time);
-                            meta.after = time.getTime();
-                        }
-                        break;
-                    default:
-                        sender.sendMessage("Unknown option: " + toks[0]);
-                        return true;
                     }
-                }
-                if (!meta.global) {
-                    search.eq("world", meta.world);
-                    if (!meta.worldwide) {
-                        search.gt("x", meta.cx - meta.radius);
-                        search.lt("x", meta.cx + meta.radius);
-                        search.gt("z", meta.cz - meta.radius);
-                        search.lt("z", meta.cz + meta.radius);
+                    break;
+                case "old": case "o":
+                    search.eq("oldType", toks[1]);
+                    meta.oldType = toks[1];
+                    break;
+                case "new": case "n":
+                    search.eq("newType", toks[1]);
+                    meta.newType = toks[1];
+                    break;
+                case "time": case "t":
+                    if (true) {
+                        long seconds;
+                        try {
+                            seconds = Long.parseLong(toks[1]);
+                        } catch (NumberFormatException nfe) {
+                            sender.sendMessage("Seconds expected, got: " + toks[1]);
+                            return true;
+                        }
+                        Date time = new Date(System.currentTimeMillis() - (seconds * 1000));
+                        search.gt("time", time);
+                        meta.after = time.getTime();
                     }
+                    break;
+                default:
+                    sender.sendMessage("Unknown option: " + toks[0]);
+                    return true;
                 }
-                search.orderByDescending("time");
-                if (player != null) {
-                    player.removeMetadata(META_LOOKUP, this);
-                    player.removeMetadata(META_LOOKUP_META, this);
-                    player.sendMessage(ChatColor.YELLOW + "Searching...");
-                    search.findListAsync((actions) -> {
-                            if (!player.isValid()) return;
-                            if (actions.isEmpty()) {
-                                player.sendMessage(ChatColor.RED + "Nothing found.");
-                                return;
-                            }
-                            player.sendMessage("" + ChatColor.YELLOW + actions.size() + " actions found");
-                            player.setMetadata(META_LOOKUP, new FixedMetadataValue(this, actions));
-                            player.setMetadata(META_LOOKUP_META, new FixedMetadataValue(this, meta));
-                            showActionPage(player, actions, meta, 0);
-                        });
-                } else {
-                    getLogger().info("Searching...");
-                    search.findListAsync((actions) -> {
-                            this.consoleSearch = actions;
-                            getLogger().info("Found " + actions.size() + " results. Use /wm page PAGE");
-                        });
+            }
+            if (!meta.global) {
+                search.eq("world", meta.world);
+                if (!meta.worldwide) {
+                    search.gt("x", meta.cx - meta.radius);
+                    search.lt("x", meta.cx + meta.radius);
+                    search.gt("z", meta.cz - meta.radius);
+                    search.lt("z", meta.cz + meta.radius);
                 }
+            }
+            search.orderByDescending("time");
+            if (player != null) {
+                player.removeMetadata(META_LOOKUP, this);
+                player.removeMetadata(META_LOOKUP_META, this);
+                player.sendMessage(ChatColor.YELLOW + "Searching...");
+                search.findListAsync((actions) -> {
+                        if (!player.isValid()) return;
+                        if (actions.isEmpty()) {
+                            player.sendMessage(ChatColor.RED + "Nothing found.");
+                            return;
+                        }
+                        player.sendMessage("" + ChatColor.YELLOW + actions.size() + " actions found");
+                        player.setMetadata(META_LOOKUP, new FixedMetadataValue(this, actions));
+                        player.setMetadata(META_LOOKUP_META, new FixedMetadataValue(this, meta));
+                        showActionPage(player, actions, meta, 0);
+                    });
+            } else {
+                getLogger().info("Searching...");
+                search.findListAsync((actions) -> {
+                        this.consoleSearch = actions;
+                        getLogger().info("Found " + actions.size() + " results. Use /wm page PAGE");
+                    });
+            }
+            return true;
+        }
+        case "rollback": {
+            if (player != null && player.hasPermission("watchman.rollback")) {
+                player.sendMessage(ChatColor.RED + "You don't have permission");
                 return true;
             }
-            break;
-        case "rollback": {
             if (args.length != 1 && args.length != 2) return false;
             List<SQLAction> actions;
             if (player != null) {
