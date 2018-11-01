@@ -188,17 +188,6 @@ public final class SQLAction {
         return this;
     }
 
-    void truncate() {
-        if (oldTag != null && oldTag.length() > MAX_TAG_LENGTH) {
-            WatchmanPlugin.getInstance().getLogger().warning("Warning: old_tag too long (" + oldTag.length() + "), truncating: " + oldTag);
-            oldTag = oldTag.substring(0, MAX_TAG_LENGTH);
-        }
-        if (newTag != null && newTag.length() > MAX_TAG_LENGTH) {
-            WatchmanPlugin.getInstance().getLogger().warning("Warning: new_tag too long (" + newTag.length() + "), truncating: " + newTag);
-            newTag = newTag.substring(0, MAX_TAG_LENGTH);
-        }
-    }
-
     boolean rollback() {
         Type type = getType();
         switch (type) {

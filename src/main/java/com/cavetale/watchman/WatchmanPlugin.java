@@ -417,7 +417,6 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     }
 
     void store(SQLAction action) {
-        action.truncate();
         database.insertAsync(action, null);
     }
 
