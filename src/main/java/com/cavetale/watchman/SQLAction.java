@@ -34,6 +34,7 @@ import org.json.simple.JSONValue;
 @Data
 @Table(name = "actions",
        indexes = {@Index(name="id_actor_id", columnList="actor_id"),
+                  @Index(name="id_time", columnList="time"),
                   @Index(name="id_world", columnList="world"),
                   @Index(name="id_action", columnList="action"),
                   @Index(name="id_xz", columnList="x,z")})
@@ -47,9 +48,10 @@ public final class SQLAction {
     @Column(nullable = true) private UUID actorId; // Player unique id
     @Column(nullable = false, length = 63) private String actorType; // Entity type
     @Column(nullable = true, length = 255) private String actorName; // Entity name
-    // Object old state
+    // Object location
     @Column(nullable = false, length = 31) private String world;
     @Column(nullable = false) private Integer x, y, z;
+    // Object old state
     @Column(nullable = true, length = 63) private String oldType; // e.g. diamond_block
     @Column(nullable = true, length = MAX_TAG_LENGTH) private String oldTag; // Old NBT tag, if available
     // Object new state
