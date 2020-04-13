@@ -68,7 +68,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
-        final Player player = sender instanceof Player ? (Player)sender : null;
+        final Player player = sender instanceof Player ? (Player) sender : null;
         if (args.length == 0) return false;
         switch (args[0]) {
         case "tool": {
@@ -241,7 +241,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     player.sendMessage(ChatColor.RED + "Make a lookup first.");
                     return true;
                 }
-                actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+                actions = (List<SQLAction>) player.getMetadata(META_LOOKUP).get(0).value();
             } else {
                 if (consoleSearch == null) {
                     getLogger().info("No records available");
@@ -303,12 +303,12 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     player.sendMessage(ChatColor.RED + "No records available");
                     return true;
                 }
-                List<SQLAction> actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+                List<SQLAction> actions = (List<SQLAction>) player.getMetadata(META_LOOKUP).get(0).value();
                 LookupMeta meta;
                 if (!player.hasMetadata(META_LOOKUP)) {
                     meta = new LookupMeta();
                 } else {
-                    meta = (LookupMeta)player.getMetadata(META_LOOKUP_META).get(0).value();
+                    meta = (LookupMeta) player.getMetadata(META_LOOKUP_META).get(0).value();
                 }
                 showActionPage(player, actions, meta, num - 1);
             } else {
@@ -350,7 +350,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 player.sendMessage(ChatColor.RED + "No records available");
                 return true;
             }
-            List<SQLAction> actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+            List<SQLAction> actions = (List<SQLAction>) player.getMetadata(META_LOOKUP).get(0).value();
             if (num >= actions.size()) {
                 player.sendMessage(ChatColor.RED + "Invalid action index: " + num);
                 return true;
@@ -399,9 +399,9 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             List<SQLAction> actions;
             int pageLen;
             if (sender instanceof Player) {
-                Player player = (Player)sender;
+                Player player = (Player) sender;
                 if (!player.hasMetadata(META_LOOKUP)) return Collections.emptyList();
-                actions = (List<SQLAction>)player.getMetadata(META_LOOKUP).get(0).value();
+                actions = (List<SQLAction>) player.getMetadata(META_LOOKUP).get(0).value();
                 pageLen = 5;
             } else {
                 if (consoleSearch == null) return Collections.emptyList();
@@ -504,7 +504,9 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         }
         Player player = event.getPlayer();
         String world = block.getWorld().getName();
-        int x = block.getX(), y = block.getY(), z = block.getZ();
+        int x = block.getX();
+        int y = block.getY();
+        int z = block.getZ();
         LookupMeta meta = new LookupMeta();
         meta.world = world;
         meta.location = new LookupMeta.Vec(x, y, z);

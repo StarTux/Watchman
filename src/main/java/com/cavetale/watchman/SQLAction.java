@@ -16,6 +16,7 @@ import javax.persistence.Index;
 import javax.persistence.Table;
 import lombok.Data;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -26,6 +27,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -33,11 +35,11 @@ import org.json.simple.JSONValue;
 
 @Data
 @Table(name = "actions",
-       indexes = {@Index(name="id_actor_id", columnList="actor_id"),
-                  @Index(name="id_time", columnList="time"),
-                  @Index(name="id_world", columnList="world"),
-                  @Index(name="id_action", columnList="action"),
-                  @Index(name="id_xz", columnList="x,z")})
+       indexes = {@Index(name = "id_actor_id", columnList = "actor_id"),
+                  @Index(name = "id_time", columnList = "time"),
+                  @Index(name = "id_world", columnList = "world"),
+                  @Index(name = "id_action", columnList = "action"),
+                  @Index(name = "id_xz", columnList = "x,z")})
 public final class SQLAction {
     private static final int MAX_TAG_LENGTH = 8192;
     @Id private Integer id;
@@ -50,13 +52,19 @@ public final class SQLAction {
     @Column(nullable = true, length = 255) private String actorName; // Entity name
     // Object location
     @Column(nullable = false, length = 31) private String world;
-    @Column(nullable = false) private Integer x, y, z;
+    @Column(nullable = false) private Integer x;
+    @Column(nullable = false) private Integer y;
+    @Column(nullable = false) private Integer z;
     // Object old state
-    @Column(nullable = true, length = 63) private String oldType; // e.g. diamond_block
-    @Column(nullable = true, length = MAX_TAG_LENGTH) private String oldTag; // Old NBT tag, if available
+    @Column(nullable = true, length = 63)
+    private String oldType; // e.g. diamond_block
+    @Column(nullable = true, length = MAX_TAG_LENGTH)
+    private String oldTag; // Old NBT tag, if available
     // Object new state
-    @Column(nullable = true, length = 63) private String newType; // New material type, only for blocks (or spawned entities?)
-    @Column(nullable = true, length = MAX_TAG_LENGTH) private String newTag; // New NBT tag, only for blocks, if available
+    @Column(nullable = true, length = 63)
+    private String newType; // New material type, only for blocks (or spawned entities?)
+    @Column(nullable = true, length = MAX_TAG_LENGTH)
+    private String newTag; // New NBT tag, only for blocks, if available
 
     enum Type {
         PLAYER_JOIN("join"),
@@ -66,7 +74,7 @@ public final class SQLAction {
         BLOCK_EXPLODE("explode"),
         ENTITY_KILL("kill");
         final String human;
-        Type(String human) {
+        Type(final String human) {
             this.human = human;
         }
     }
@@ -116,7 +124,7 @@ public final class SQLAction {
         this.x = block.getX();
         this.y = block.getY();
         this.z = block.getZ();
-        oldType = block.getType().name().toLowerCase();
+        oldType = block.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
             this.oldTag = JSONValue.toJSONString(tag);
@@ -131,7 +139,7 @@ public final class SQLAction {
         this.x = blockState.getX();
         this.y = blockState.getY();
         this.z = blockState.getZ();
-        oldType = blockState.getType().name().toLowerCase();
+        oldType = blockState.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {
             this.oldTag = JSONValue.toJSONString(tag);
@@ -142,13 +150,13 @@ public final class SQLAction {
     }
 
     public SQLAction setNewState(Material mat) {
-        this.newType = mat.name().toLowerCase();
+        this.newType = mat.createBlockData().getAsString(false);
         this.newTag = null;
         return this;
     }
 
     public SQLAction setNewState(Block block) {
-        this.newType = block.getType().name().toLowerCase();
+        this.newType = block.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
             this.newTag = JSONValue.toJSONString(tag);
@@ -199,22 +207,22 @@ public final class SQLAction {
             World bworld = Bukkit.getWorld(this.world);
             if (bworld == null) return false;
             Block block = bworld.getBlockAt(this.x, this.y, this.z);
-            Material oldMaterial;
+            BlockData oldData;
             if (this.oldType == null) {
                 // legacy
-                oldMaterial = Material.AIR;
+                oldData = Material.AIR.createBlockData();
             } else {
                 try {
-                    oldMaterial = Material.valueOf(this.oldType.toUpperCase());
+                    oldData = Bukkit.createBlockData(oldType);
                 } catch (IllegalArgumentException iae) {
                     iae.printStackTrace();
                     return false;
                 }
             }
-            block.setType(oldMaterial, false);
+            block.setBlockData(oldData, false);
             if (this.oldTag != null) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> json = (Map<String, Object>)JSONValue.parse(this.oldTag);
+                Map<String, Object> json = (Map<String, Object>) JSONValue.parse(this.oldTag);
                 if (json != null) {
                     Dirty.setBlockTag(block, json);
                 }
@@ -260,7 +268,8 @@ public final class SQLAction {
         sb.append(",");
         sb.append(this.z);
         Type type = this.getType();
-        boolean showOld, showNew;
+        boolean showOld;
+        boolean showNew;
         if (type == null) {
             showOld = true;
             showNew = true;
@@ -291,10 +300,11 @@ public final class SQLAction {
     }
 
     public void showShortInfo(Player player, LookupMeta meta, int index) {
-        ComponentBuilder cb = new ComponentBuilder("[" + index + "]")
-            .color(ChatColor.YELLOW)
-            .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/watchman info " + index))
-            .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.GOLD + "/watchman info " + index)));
+        ComponentBuilder cb = new ComponentBuilder("[" + index + "]").color(ChatColor.YELLOW);
+        cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/watchman info " + index));
+        BaseComponent[] lore = TextComponent
+            .fromLegacyText(ChatColor.GOLD + "/watchman info " + index);
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
         cb.append(" ").reset();
         long interval = System.currentTimeMillis() - this.time.getTime();
         TimeUnit unit = TimeUnit.MILLISECONDS;
@@ -303,21 +313,33 @@ public final class SQLAction {
         long minutes = unit.toMinutes(interval) % 60L;
         long seconds = unit.toSeconds(interval) % 60L;
         long millis = unit.toMillis(interval) % 1000L;
-        HoverEvent hover = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(new SimpleDateFormat("YY/MM/dd HH:mm:ss.SSS").format(this.time)));
-        ClickEvent click;
-        if (days > 0) cb.append(days + "d").color(ChatColor.DARK_RED).event(hover);
-        if (hours > 0) cb.append("" + hours + "h").color(ChatColor.RED).event(hover);
-        cb.append(String.format("%02d:%02d.%03d", minutes, seconds, millis)).color(ChatColor.GRAY).event(hover);
+        lore = TextComponent
+            .fromLegacyText(new SimpleDateFormat("YY/MM/dd HH:mm:ss.SSS").format(this.time));
+        // Build time format
+        StringBuilder sb = new StringBuilder();
+        if (days > 0) sb.append("" + ChatColor.DARK_RED + days + "d");
+        if (hours > 0) sb.append("" + ChatColor.RED + hours + "h");
+        sb.append(String.format(ChatColor.GRAY + "%02d:%02d.%03d", minutes, seconds, millis));
+        //
+        cb.append(sb.toString()).color(ChatColor.GRAY);
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
         cb.append(" ").reset();
         if (this.actorType.equals("player")) {
             String name = GenericEvents.cachedPlayerName(this.actorId);
-            hover = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Name: " + name + "\n" + "UUID: " + this.actorId));
-            click = new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg " + name);
-            cb.append(name).color(ChatColor.BLUE).event(hover).insertion("" + this.actorId).event(click);
+            lore = TextComponent
+                .fromLegacyText("Name: " + name + "\n" + "UUID: " + this.actorId);
+            cb.append(name).color(ChatColor.BLUE);
+            cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
+            cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg " + name));
+            cb.insertion("" + this.actorId);
         } else {
-            hover = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Type: " + this.actorType + "\n" + "UUID: " + this.actorId));
-            click = new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/summon " + this.actorType);
-            cb.append(this.actorType).color(ChatColor.DARK_GREEN).event(hover).insertion("" + this.actorId).event(click);
+            lore = TextComponent
+                .fromLegacyText("Type: " + this.actorType + "\n" + "UUID: " + this.actorId);
+            cb.append(this.actorType).color(ChatColor.DARK_GREEN);
+            cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
+            cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
+                                    "/summon " + this.actorType));
+            cb.insertion("" + this.actorId);
         }
         cb.append(" ");
         Type type = this.getType();
@@ -334,9 +356,11 @@ public final class SQLAction {
             String coords2 = this.x + " " + this.y + " " + this.z;
             cb.append(coords).color(ChatColor.DARK_GRAY).insertion(coords2);
             cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp " + coords2));
-            cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(coords)));
+            cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                    TextComponent.fromLegacyText(coords)));
         }
-        boolean showOld, showNew;
+        boolean showOld;
+        boolean showNew;
         if (type == null) {
             showOld = false;
             showNew = false;
@@ -354,13 +378,19 @@ public final class SQLAction {
         }
         if (showOld && this.oldType != null) {
             cb.append(" ");
-            hover = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Type: " + this.oldType + "\n" + "Tag: " + this.oldTag));
-            cb.append(this.oldType).color(ChatColor.RED).event(hover).insertion(this.oldType);
+            lore = TextComponent
+                .fromLegacyText("Type: " + this.oldType + "\n" + "Tag: " + this.oldTag);
+            cb.append(this.oldType).color(ChatColor.RED);
+            cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
+            cb.insertion(this.oldType);
         }
         if (showNew && this.newType != null) {
             cb.append(" ");
-            hover = new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText("Type: " + this.newType + "\n" + "Tag: " + this.newTag));
-            cb.append(this.newType).color(ChatColor.GREEN).event(hover).insertion(this.newType);
+            lore = TextComponent
+                .fromLegacyText("Type: " + this.newType + "\n" + "Tag: " + this.newTag);
+            cb.append(this.newType).color(ChatColor.GREEN);
+            cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
+            cb.insertion(this.newType);
         }
         player.spigot().sendMessage(cb.create());
     }
