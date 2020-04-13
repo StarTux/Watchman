@@ -56,12 +56,12 @@ public final class SQLAction {
     @Column(nullable = false) private Integer y;
     @Column(nullable = false) private Integer z;
     // Object old state
-    @Column(nullable = true, length = 63)
+    @Column(nullable = true, length = 255)
     private String oldType; // e.g. diamond_block
     @Column(nullable = true, length = MAX_TAG_LENGTH)
     private String oldTag; // Old NBT tag, if available
     // Object new state
-    @Column(nullable = true, length = 63)
+    @Column(nullable = true, length = 255)
     private String newType; // New material type, only for blocks (or spawned entities?)
     @Column(nullable = true, length = MAX_TAG_LENGTH)
     private String newTag; // New NBT tag, only for blocks, if available
