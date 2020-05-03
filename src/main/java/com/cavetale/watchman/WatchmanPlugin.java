@@ -59,7 +59,9 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         getLogger().info("Deleting actions older than " + then);
         database.find(SQLAction.class)
             .lt("time", then)
-            .deleteAsync(null);
+            .deleteAsync(count -> {
+                    getLogger().info("Deleted " + count + " old actions");
+                });
         getServer().getPluginManager().registerEvents(this, this);
     }
 
