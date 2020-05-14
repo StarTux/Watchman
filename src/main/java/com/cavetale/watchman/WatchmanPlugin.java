@@ -75,6 +75,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             player.removeMetadata(META_LOOKUP_META, this);
         }
         drainStorage();
+        database.waitForAsyncTask();
     }
 
     @Override
