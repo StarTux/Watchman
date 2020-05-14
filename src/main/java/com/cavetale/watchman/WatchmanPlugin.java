@@ -47,6 +47,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     @Getter private static WatchmanPlugin instance;
     private SQLDatabase database;
     private List<SQLAction> consoleSearch = null;
+    List<SQLAction> storage = new ArrayList<>();
 
     @Override
     public void onEnable() {
@@ -63,6 +64,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     getLogger().info("Deleted " + count + " old actions");
                 });
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getScheduler().runTaskTimer(this, this::drainStorage, 20, 20);
     }
 
     @Override
@@ -72,6 +74,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             player.removeMetadata(META_LOOKUP, this);
             player.removeMetadata(META_LOOKUP_META, this);
         }
+        drainStorage();
     }
 
     @Override
@@ -106,7 +109,9 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                 return true;
             }
             if (args.length == 0) return false;
-            Location location = player != null ? player.getLocation() : getServer().getWorlds().get(0).getSpawnLocation();
+            Location location = player != null
+                ? player.getLocation()
+                : getServer().getWorlds().get(0).getSpawnLocation();
             LookupMeta meta = new LookupMeta();
             meta.world = location.getWorld().getName();
             meta.cx = location.getBlockX();
@@ -425,7 +430,16 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     }
 
     void store(SQLAction action) {
-        database.insertAsync(action, null);
+        storage.add(action);
+    }
+
+    /**
+     * Call regularly and when plugin is disabled.
+     */
+    void drainStorage() {
+        if (storage.isEmpty()) return;
+        database.saveAsync(storage, null);
+        storage = new ArrayList<>();
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
