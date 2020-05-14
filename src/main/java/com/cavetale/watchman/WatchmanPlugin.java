@@ -374,6 +374,8 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             return true;
         }
         case "debug":
+            sender.sendMessage("Storage: " + storage.size() + " rows");
+            sender.sendMessage("Backlog: " + database.getBacklogSize());
             return true;
         default:
             break;
