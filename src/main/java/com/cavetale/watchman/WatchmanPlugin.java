@@ -663,6 +663,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
         for (int i = actions.size() - 1; i >= 0; i -= 1) {
             SQLAction row = actions.get(i);
             Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
+            if (block.isEmpty()) continue;
             BlockData oldData = block.getBlockData();
             player.sendBlockChange(block.getLocation(), Material.AIR.createBlockData());
             if (oldData instanceof Bisected) {
@@ -695,6 +696,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
                     }
                     SQLAction row = actions.get(actionIndex++);
                     Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
+                    if (block.isEmpty()) continue;
                     BlockData data = row.getNewBlockData();
                     player.sendBlockChange(block.getLocation(), data);
                 }
