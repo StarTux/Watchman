@@ -19,7 +19,10 @@ import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Bisected;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -37,6 +40,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public final class WatchmanPlugin extends JavaPlugin implements Listener {
     // Constants
@@ -51,13 +55,16 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        saveDefaultConfig();
+        reloadConfig();
         instance = this;
         database = new SQLDatabase(this);
         database.registerTables(SQLAction.class);
         database.createAllTables();
+        long days = getConfig().getLong("DeleteActionsAfter", 10L);
         Date then = new Date(System.currentTimeMillis()
-                             - 10L * 24L * 60L * 60L * 1000L);
-        getLogger().info("Deleting actions older than " + then);
+                             - days * 24L * 60L * 60L * 1000L);
+        getLogger().info("Deleting actions older than " + days + " days (" + then + ")");
         database.find(SQLAction.class)
             .lt("time", then)
             .deleteAsync(count -> {
@@ -377,6 +384,7 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             sender.sendMessage("Storage: " + storage.size() + " rows");
             sender.sendMessage("Backlog: " + database.getBacklogSize());
             return true;
+        case "rewind": return rewindCommand(player, Arrays.copyOfRange(args, 1, args.length));
         default:
             break;
         }
@@ -558,7 +566,8 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
     void showActionPage(Player player, List<SQLAction> actions, LookupMeta meta, int page) {
         int pageLen = 5;
         int totalPageCount = (actions.size() - 1) / pageLen + 1;
-        player.sendMessage(ChatColor.YELLOW + "Watchman log page " + (page + 1) + "/" + totalPageCount + ChatColor.GRAY + ChatColor.ITALIC + " (" + actions.size() + " logs)");
+        player.sendMessage(ChatColor.YELLOW + "Watchman log page " + (page + 1) + "/" + totalPageCount
+                           + ChatColor.GRAY + ChatColor.ITALIC + " (" + actions.size() + " logs)");
         StringBuilder sb = new StringBuilder();
         if (meta.location != null) {
             sb.append("location=").append(meta.world)
@@ -608,5 +617,88 @@ public final class WatchmanPlugin extends JavaPlugin implements Listener {
             cb.color(ChatColor.DARK_GRAY);
         }
         player.spigot().sendMessage(cb.create());
+    }
+
+    boolean rewindCommand(Player player, String[] args) {
+        if (args.length > 2) return false;
+        Cuboid cuboid = WorldEdit.getSelection(player);
+        if (cuboid == null) {
+            player.sendMessage(ChatColor.RED + "No selection!");
+            return true;
+        }
+        int speed = 1;
+        if (args.length >= 1) {
+            try {
+                speed = Integer.parseInt(args[0]);
+            } catch (NumberFormatException nfe) {
+                player.sendMessage(ChatColor.RED + "Bad speed: " + args[0]);
+                return true;
+            }
+        }
+        String worldName;
+        if (args.length >= 2) {
+            worldName = args[1];
+        } else {
+            World world = player.getWorld();
+            worldName = player.getWorld().getName();
+        }
+        SQLTable<SQLAction>.Finder search = database.find(SQLAction.class);
+        search.eq("world", worldName);
+        search.gte("x", cuboid.ax);
+        search.gte("y", cuboid.ay);
+        search.gte("z", cuboid.az);
+        search.lte("x", cuboid.bx);
+        search.lte("y", cuboid.by);
+        search.lte("z", cuboid.bz);
+        search.orderByAscending("time");
+        final int finalSpeed = speed;
+        search.findListAsync(ls -> rewindCallback(player, ls, finalSpeed));
+        return true;
+    }
+
+    void rewindCallback(Player player, List<SQLAction> actions, int speed) {
+        player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, speed: " + speed);
+        World world = player.getWorld();
+        // Remove
+        for (int i = actions.size() - 1; i >= 0; i -= 1) {
+            SQLAction row = actions.get(i);
+            Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
+            BlockData oldData = block.getBlockData();
+            player.sendBlockChange(block.getLocation(), Material.AIR.createBlockData());
+            if (oldData instanceof Bisected) {
+                Bisected bis = (Bisected) oldData;
+                switch (bis.getHalf()) {
+                case TOP:
+                    player.sendBlockChange(block.getRelative(0, -1, 0).getLocation(), Material.AIR.createBlockData());
+                    break;
+                case BOTTOM:
+                    player.sendBlockChange(block.getRelative(0, 1, 0).getLocation(), Material.AIR.createBlockData());
+                    break;
+                default: break;
+                }
+            }
+        }
+        // Place back
+        new BukkitRunnable() {
+            int actionIndex = 0;
+            @Override
+            public void run() {
+                if (!player.isValid() || !player.getWorld().equals(world)) {
+                    cancel();
+                    return;
+                }
+                for (int i = 0; i < speed; i += 1) {
+                    if (actionIndex >= actions.size()) {
+                        player.sendMessage(ChatColor.YELLOW + "Done!");
+                        cancel();
+                        return;
+                    }
+                    SQLAction row = actions.get(actionIndex++);
+                    Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
+                    BlockData data = row.getNewBlockData();
+                    player.sendBlockChange(block.getLocation(), data);
+                }
+            }
+        }.runTaskTimer(this, 100L, 1L);
     }
 }

@@ -198,6 +198,30 @@ public final class SQLAction {
         return this;
     }
 
+    public BlockData getOldBlockData() {
+        if (this.oldType == null) {
+            return Material.AIR.createBlockData();
+        }
+        try {
+            return Bukkit.createBlockData(oldType);
+        } catch (IllegalArgumentException iae) {
+            iae.printStackTrace();
+        }
+        return Material.AIR.createBlockData();
+    }
+
+    public BlockData getNewBlockData() {
+        if (this.newType == null) {
+            return Material.AIR.createBlockData();
+        }
+        try {
+            return Bukkit.createBlockData(newType);
+        } catch (IllegalArgumentException iae) {
+            iae.printStackTrace();
+        }
+        return Material.AIR.createBlockData();
+    }
+
     boolean rollback() {
         Type type = getType();
         switch (type) {
