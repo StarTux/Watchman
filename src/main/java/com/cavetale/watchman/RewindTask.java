@@ -1,13 +1,13 @@
 package com.cavetale.watchman;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.Bisected;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -29,23 +29,12 @@ public final class RewindTask extends BukkitRunnable {
     }
 
     public void hideBlocks() {
-        for (int i = actions.size() - 1; i >= 0; i -= 1) {
-            SQLAction row = actions.get(i);
-            Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
-            BlockData oldData = block.getBlockData();
+        Set<Block> blocks = new HashSet<>();
+        for (SQLAction row : actions) {
+            blocks.add(world.getBlockAt(row.getX(), row.getY(), row.getZ()));
+        }
+        for (Block block : blocks) {
             player.sendBlockChange(block.getLocation(), Material.AIR.createBlockData());
-            if (oldData instanceof Bisected) {
-                Bisected bis = (Bisected) oldData;
-                switch (bis.getHalf()) {
-                case TOP:
-                    player.sendBlockChange(block.getRelative(0, -1, 0).getLocation(), Material.AIR.createBlockData());
-                    break;
-                case BOTTOM:
-                    player.sendBlockChange(block.getRelative(0, 1, 0).getLocation(), Material.AIR.createBlockData());
-                    break;
-                default: break;
-                }
-            }
         }
     }
 
@@ -64,8 +53,7 @@ public final class RewindTask extends BukkitRunnable {
             SQLAction row = actions.get(actionIndex++);
             Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
             if (block.isEmpty()) continue;
-            BlockData data = row.getNewBlockData();
-            player.sendBlockChange(block.getLocation(), data);
+            player.sendBlockChange(block.getLocation(), row.getNewBlockData());
         }
     }
 }

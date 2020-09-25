@@ -5,12 +5,14 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -30,15 +32,39 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockBreak(BlockBreakEvent event) {
+        event.getPlayer().sendMessage(event.getEventName() + " " + event.getBlock().getBlockData().getAsString());
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_BREAK)
                      .setActorPlayer(event.getPlayer())
                      .setOldState(event.getBlock())
                      .setNewState(Material.AIR));
+        Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
+        // BlockDestroyEvent is unreliable, will always call the top block never the bottom one
+        if (otherHalf != null) {
+            event.getPlayer().sendMessage(event.getEventName() + " " + otherHalf.getBlockData().getAsString());
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.BLOCK_BREAK)
+                         .setActorPlayer(event.getPlayer())
+                         .setOldState(otherHalf)
+                         .setNewState(Material.AIR));
+
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        if (event instanceof BlockMultiPlaceEvent) {
+            BlockMultiPlaceEvent multiEvent = (BlockMultiPlaceEvent) event;
+            for (BlockState replacedState : multiEvent.getReplacedBlockStates()) {
+                plugin.store(new SQLAction()
+                             .setNow().setActionType(SQLAction.Type.BLOCK_PLACE)
+                             .setActorPlayer(player)
+                             .setOldState(replacedState)
+                             .setNewState(replacedState.getBlock()));
+            }
+            return;
+        }
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_PLACE)
                      .setActorPlayer(event.getPlayer())

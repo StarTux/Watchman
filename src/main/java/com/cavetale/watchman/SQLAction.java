@@ -166,6 +166,21 @@ public final class SQLAction {
         return this;
     }
 
+    public SQLAction setNewState(BlockState blockState) {
+        this.world = blockState.getWorld().getName();
+        this.x = blockState.getX();
+        this.y = blockState.getY();
+        this.z = blockState.getZ();
+        newType = blockState.getBlockData().getAsString(false);
+        Map<String, Object> tag = Dirty.getBlockTag(blockState);
+        if (tag != null) {
+            this.newTag = JSONValue.toJSONString(tag);
+        } else {
+            this.newTag = null;
+        }
+        return this;
+    }
+
     public SQLAction setOldState(Entity entity) {
         Location location = entity.getLocation();
         this.world = location.getWorld().getName();
