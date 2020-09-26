@@ -1,5 +1,6 @@
 package com.cavetale.watchman;
 
+import com.cavetale.core.util.Json;
 import com.cavetale.dirty.Dirty;
 import com.winthier.generic_events.GenericEvents;
 import java.text.SimpleDateFormat;
@@ -31,7 +32,6 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.json.simple.JSONValue;
 
 @Data
 @Table(name = "actions",
@@ -127,7 +127,7 @@ public final class SQLAction {
         oldType = block.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
-            this.oldTag = JSONValue.toJSONString(tag);
+            this.oldTag = Json.serialize(tag);
         } else {
             this.oldTag = null;
         }
@@ -142,7 +142,7 @@ public final class SQLAction {
         oldType = blockState.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {
-            this.oldTag = JSONValue.toJSONString(tag);
+            this.oldTag = Json.serialize(tag);
         } else {
             this.oldTag = null;
         }
@@ -159,7 +159,7 @@ public final class SQLAction {
         this.newType = block.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
-            this.newTag = JSONValue.toJSONString(tag);
+            this.newTag = Json.serialize(tag);
         } else {
             this.newTag = null;
         }
@@ -174,7 +174,7 @@ public final class SQLAction {
         newType = blockState.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {
-            this.newTag = JSONValue.toJSONString(tag);
+            this.newTag = Json.serialize(tag);
         } else {
             this.newTag = null;
         }
@@ -190,7 +190,7 @@ public final class SQLAction {
         this.oldType = entity.getType().name().toLowerCase();
         Map<String, Object> tag = Dirty.getEntityTag(entity);
         if (tag != null) {
-            this.oldTag = JSONValue.toJSONString(tag);
+            this.oldTag = Json.serialize(tag);
         } else {
             this.oldTag = null;
         }
@@ -209,7 +209,7 @@ public final class SQLAction {
         map.put("z", location.getZ());
         map.put("pitch", location.getPitch());
         map.put("yaw", location.getYaw());
-        this.oldTag = JSONValue.toJSONString(map);
+        this.oldTag = Json.serialize(map);
         return this;
     }
 
@@ -261,7 +261,7 @@ public final class SQLAction {
             block.setBlockData(oldData, false);
             if (this.oldTag != null) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> json = (Map<String, Object>) JSONValue.parse(this.oldTag);
+                Map<String, Object> json = (Map<String, Object>) Json.deserialize(this.oldTag, Map.class);
                 if (json != null) {
                     Dirty.setBlockTag(block, json);
                 }

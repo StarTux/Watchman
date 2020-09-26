@@ -77,6 +77,14 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- GenericEvents -->
+    <dependency>
+      <groupId>com.cavetale.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- WorldEdit -->
     <dependency>
       <groupId>com.sk89q.worldedit</groupId>
