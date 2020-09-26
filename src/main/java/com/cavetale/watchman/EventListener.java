@@ -32,7 +32,6 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockBreak(BlockBreakEvent event) {
-        event.getPlayer().sendMessage(event.getEventName() + " " + event.getBlock().getBlockData().getAsString());
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_BREAK)
                      .setActorPlayer(event.getPlayer())
@@ -41,7 +40,6 @@ public final class EventListener implements Listener {
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
         // BlockDestroyEvent is unreliable, will always call the top block never the bottom one
         if (otherHalf != null) {
-            event.getPlayer().sendMessage(event.getEventName() + " " + otherHalf.getBlockData().getAsString());
             plugin.store(new SQLAction()
                          .setNow().setActionType(SQLAction.Type.BLOCK_BREAK)
                          .setActorPlayer(event.getPlayer())
