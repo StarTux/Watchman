@@ -22,10 +22,10 @@ public final class RewindTask extends BukkitRunnable {
     private World world;
 
     public void start() {
+        world = player.getWorld();
         player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick);
         hideBlocks();
         runTaskTimer(plugin, 100L, 1L);
-        world = player.getWorld();
     }
 
     public void hideBlocks() {
