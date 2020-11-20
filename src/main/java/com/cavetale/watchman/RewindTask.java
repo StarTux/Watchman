@@ -72,7 +72,6 @@ public final class RewindTask extends BukkitRunnable {
             }
             SQLAction row = actions.get(actionIndex++);
             Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
-            if (block.isEmpty()) continue;
             player.sendBlockChange(block.getLocation(), row.getNewBlockData());
         }
     }
