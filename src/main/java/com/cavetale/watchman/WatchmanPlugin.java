@@ -19,6 +19,7 @@ public final class WatchmanPlugin extends JavaPlugin {
     List<SQLAction> storage = new ArrayList<>();
     WatchmanCommand watchmanCommand = new WatchmanCommand(this);
     EventListener eventListener = new EventListener(this);
+    EntityHider entityHider;
 
     @Override
     public void onEnable() {
@@ -32,6 +33,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         watchmanCommand.enable();
         eventListener.enable();
         getServer().getScheduler().runTaskTimer(this, this::drainStorage, 20, 20);
+        entityHider = new EntityHider(this, EntityHider.Policy.BLACKLIST);
     }
 
     @Override

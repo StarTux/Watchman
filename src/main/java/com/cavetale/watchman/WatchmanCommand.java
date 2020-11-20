@@ -417,12 +417,12 @@ public final class WatchmanCommand implements TabExecutor {
         search.lte("z", cuboid.bz);
         search.orderByAscending("time");
         final int finalSpeed = speed;
-        search.findListAsync(ls -> rewindCallback(player, ls, finalSpeed));
+        search.findListAsync(ls -> rewindCallback(player, ls, finalSpeed, cuboid));
         return true;
     }
 
-    void rewindCallback(Player player, List<SQLAction> actions, int speed) {
-        RewindTask task = new RewindTask(plugin, player, actions, 100L, speed);
+    void rewindCallback(Player player, List<SQLAction> actions, int speed, Cuboid cuboid) {
+        RewindTask task = new RewindTask(plugin, player, actions, 100L, speed, cuboid);
         task.start();
     }
 }

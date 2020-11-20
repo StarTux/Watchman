@@ -8,6 +8,7 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -18,6 +19,7 @@ public final class RewindTask extends BukkitRunnable {
     private final List<SQLAction> actions;
     private final long delay;
     private final int blocksPerTick;
+    private final Cuboid cuboid;
     private int actionIndex = 0;
     private World world;
 
@@ -26,6 +28,20 @@ public final class RewindTask extends BukkitRunnable {
         player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick);
         hideBlocks();
         runTaskTimer(plugin, 100L, 1L);
+    }
+
+    public void hideEntities() {
+        for (Entity e : world.getEntities()) {
+            if (!cuboid.contains(e.getLocation().getBlock())) continue;
+            plugin.entityHider.hideEntity(player, e);
+        }
+    }
+
+    public void showEntities() {
+        for (Entity e : world.getEntities()) {
+            if (!cuboid.contains(e.getLocation().getBlock())) continue;
+            plugin.entityHider.showEntity(player, e);
+        }
     }
 
     public void hideBlocks() {
@@ -46,6 +62,7 @@ public final class RewindTask extends BukkitRunnable {
         }
         for (int i = 0; i < blocksPerTick; i += 1) {
             if (actionIndex >= actions.size()) {
+                showEntities();
                 player.sendMessage(ChatColor.YELLOW + "Rewind done!");
                 cancel();
                 return;
