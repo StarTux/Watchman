@@ -26,6 +26,7 @@ public final class RewindTask extends BukkitRunnable {
     public void start() {
         world = player.getWorld();
         player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick);
+        hideEntities();
         hideBlocks();
         runTaskTimer(plugin, 100L, 1L);
     }
