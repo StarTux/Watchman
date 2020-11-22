@@ -8,6 +8,7 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -48,12 +49,15 @@ public final class RewindTask extends BukkitRunnable {
     }
 
     public void hideBlocks() {
-        Set<Block> blocks = new HashSet<>();
+        Set<Vec3i> done = new HashSet<>();
         for (SQLAction row : actions) {
-            blocks.add(world.getBlockAt(row.getX(), row.getY(), row.getZ()));
-        }
-        for (Block block : blocks) {
-            player.sendBlockChange(block.getLocation(), Material.AIR.createBlockData());
+            Vec3i vector = row.getVector();
+            if (done.contains(vector)) continue;
+            done.add(vector);
+            Block block = vector.toBlock(world);
+            BlockData blockData = row.getOldBlockData();
+            if (blockData == null) blockData = Material.AIR.createBlockData();
+            player.sendBlockChange(block.getLocation(), blockData);
         }
     }
 
@@ -72,7 +76,11 @@ public final class RewindTask extends BukkitRunnable {
             }
             SQLAction row = actions.get(actionIndex++);
             Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
-            player.sendBlockChange(block.getLocation(), row.getNewBlockData());
+            BlockData blockData = row.getNewBlockData();
+            if (block.getType() == blockData.getMaterial()) {
+                blockData = block.getBlockData();
+            }
+            player.sendBlockChange(block.getLocation(), blockData);
         }
     }
 }

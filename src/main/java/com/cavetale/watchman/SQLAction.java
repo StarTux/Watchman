@@ -8,9 +8,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.Index;
@@ -52,9 +55,9 @@ public final class SQLAction {
     @Column(nullable = true, length = 255) private String actorName; // Entity name
     // Object location
     @Column(nullable = false, length = 31) private String world;
-    @Column(nullable = false) private Integer x;
-    @Column(nullable = false) private Integer y;
-    @Column(nullable = false) private Integer z;
+    @Column(nullable = false) private int x;
+    @Column(nullable = false) private int y;
+    @Column(nullable = false) private int z;
     // Object old state
     @Column(nullable = true, length = 255)
     private String oldType; // e.g. diamond_block
@@ -66,16 +69,46 @@ public final class SQLAction {
     @Column(nullable = true, length = MAX_TAG_LENGTH)
     private String newTag; // New NBT tag, only for blocks, if available
 
-    enum Type {
-        PLAYER_JOIN("join"),
-        PLAYER_QUIT("quit"),
-        BLOCK_BREAK("break"),
-        BLOCK_PLACE("place"),
-        BLOCK_EXPLODE("explode"),
-        ENTITY_KILL("kill");
-        final String human;
-        Type(final String human) {
+    public enum Type {
+        PLAYER_JOIN("join", Category.PLAYER),
+        PLAYER_QUIT("quit", Category.PLAYER),
+        BLOCK_BREAK("break", Category.BLOCK),
+        BLOCK_PLACE("place", Category.BLOCK),
+        BLOCK_EXPLODE("explode", Category.BLOCK),
+        ENTITY_KILL("kill", Category.ENTITY);
+
+        public enum Category {
+            /**
+             * Block changing from oldState to newState.
+             */
+            BLOCK,
+
+            /**
+             * Player related.
+             */
+            PLAYER,
+
+            /**
+             * Entity related.
+             */
+            ENTITY;
+        }
+
+        public final String key;
+        public final String human;
+        public final Category category;
+
+        Type(final String human, final Category category) {
+            this.key = name().toLowerCase();
             this.human = human;
+            this.category = category;
+        }
+
+        public static List<String> inCategory(Category category) {
+            return Stream.of(Type.values())
+                .filter(t -> t.category == category)
+                .map(t -> t.key)
+                .collect(Collectors.toList());
         }
     }
 
@@ -214,12 +247,13 @@ public final class SQLAction {
     }
 
     public BlockData getOldBlockData() {
-        if (this.oldType == null) {
+        if (oldType == null) {
             return Material.AIR.createBlockData();
         }
         try {
             return Bukkit.createBlockData(oldType);
         } catch (IllegalArgumentException iae) {
+            System.err.println("Bukkit.createBlockData(" + oldType + ")");
             iae.printStackTrace();
         }
         return Material.AIR.createBlockData();
@@ -432,5 +466,9 @@ public final class SQLAction {
             cb.insertion(this.newType);
         }
         player.spigot().sendMessage(cb.create());
+    }
+
+    public Vec3i getVector() {
+        return new Vec3i(x, y, z);
     }
 }
