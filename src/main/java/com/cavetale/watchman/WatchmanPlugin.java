@@ -86,7 +86,7 @@ public final class WatchmanPlugin extends JavaPlugin {
             sb.append("location=").append(meta.world)
                 .append(":").append(meta.location.x)
                 .append(",").append(meta.location.y)
-                .append(",").append(meta.location.y);
+                .append(",").append(meta.location.z);
         } else if (meta.global) {
             sb.append("global");
         } else if (meta.worldwide) {
