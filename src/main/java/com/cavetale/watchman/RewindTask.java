@@ -23,14 +23,22 @@ public final class RewindTask extends BukkitRunnable {
     private final long delay;
     private final int blocksPerTick;
     private final Cuboid cuboid;
+    private final Set<Flag> flags;
     private int actionIndex = 0;
     private World world;
 
+    public enum Flag {
+        NO_SNOW,
+        NO_HEADS;
+    }
+
     public void start() {
         world = player.getWorld();
-        player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick);
+        player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick
+                           + ", flags: " + flags);
         hideEntities();
         hideBlocks();
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 2.0f);
         runTaskTimer(plugin, 100L, 1L);
     }
 
@@ -58,6 +66,9 @@ public final class RewindTask extends BukkitRunnable {
             done.add(vector);
             Block block = vector.toBlock(world);
             BlockData blockData = row.getOldBlockData();
+            if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
+                blockData = null;
+            }
             if (blockData == null) blockData = Material.AIR.createBlockData();
             player.sendBlockChange(block.getLocation(), blockData);
         }
@@ -82,6 +93,12 @@ public final class RewindTask extends BukkitRunnable {
             BlockData blockData = row.getNewBlockData();
             if (block.getType() == blockData.getMaterial()) {
                 blockData = block.getBlockData();
+            }
+            if (flags.contains(Flag.NO_HEADS)) {
+                Material material = blockData.getMaterial();
+                if (material == Material.PLAYER_HEAD || material == Material.PLAYER_WALL_HEAD) {
+                    continue;
+                }
             }
             player.sendBlockChange(block.getLocation(), blockData);
         }

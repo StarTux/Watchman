@@ -6,14 +6,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -373,6 +374,12 @@ public final class WatchmanCommand implements TabExecutor {
             for (int i = 0; i < totalPageCount; i += 1) ls.add("" + (i + 1));
             return matchTab(arg, ls);
         }
+        if (args.length >= 3 && args[0].equals("rewind")) {
+            return Stream.of(RewindTask.Flag.values())
+                .map(Enum::name).map(String::toLowerCase).map(s -> s.replace("_", "-"))
+                .filter(s -> s.startsWith(arg))
+                .collect(Collectors.toList());
+        }
         return null;
     }
 
@@ -385,7 +392,6 @@ public final class WatchmanCommand implements TabExecutor {
     }
 
     boolean rewindCommand(Player player, String[] args) {
-        if (args.length > 2) return false;
         Cuboid cuboid = WorldEdit.getSelection(player);
         if (cuboid == null) {
             player.sendMessage(ChatColor.RED + "No selection!");
@@ -400,12 +406,18 @@ public final class WatchmanCommand implements TabExecutor {
                 return true;
             }
         }
-        String worldName;
-        if (args.length >= 2) {
-            worldName = args[1];
-        } else {
-            World world = player.getWorld();
-            worldName = player.getWorld().getName();
+        String worldName = player.getWorld().getName();
+        Set<RewindTask.Flag> flags = EnumSet.noneOf(RewindTask.Flag.class);
+        for (int i = 1; i < args.length; i += 1) {
+            String arg = args[i];
+            RewindTask.Flag flag;
+            try {
+                flag = RewindTask.Flag.valueOf(arg.toUpperCase().replace("-", "_"));
+            } catch (IllegalArgumentException iae) {
+                player.sendMessage(ChatColor.RED + "Invalid flag: " + arg);
+                return true;
+            }
+            flags.add(flag);
         }
         SQLTable<SQLAction>.Finder search = plugin.database.find(SQLAction.class);
         search.eq("world", worldName);
@@ -419,12 +431,12 @@ public final class WatchmanCommand implements TabExecutor {
         search.orderByAscending("time");
         search.orderByAscending("id");
         final int finalSpeed = speed;
-        search.findListAsync(ls -> rewindCallback(player, ls, finalSpeed, cuboid));
+        search.findListAsync(ls -> rewindCallback(player, ls, finalSpeed, cuboid, flags));
         return true;
     }
 
-    void rewindCallback(Player player, List<SQLAction> actions, int speed, Cuboid cuboid) {
-        RewindTask task = new RewindTask(plugin, player, actions, 100L, speed, cuboid);
+    void rewindCallback(Player player, List<SQLAction> actions, int speed, Cuboid cuboid, Set<RewindTask.Flag> flags) {
+        RewindTask task = new RewindTask(plugin, player, actions, 100L, speed, cuboid, flags);
         task.start();
     }
 }
