@@ -29,7 +29,8 @@ public final class RewindTask extends BukkitRunnable {
 
     public enum Flag {
         NO_SNOW,
-        NO_HEADS;
+        NO_HEADS,
+        BACKWARDS;
     }
 
     public void start() {
@@ -37,7 +38,11 @@ public final class RewindTask extends BukkitRunnable {
         player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick
                            + ", flags: " + flags);
         hideEntities();
-        hideBlocks();
+        if (!flags.contains(Flag.BACKWARDS)) {
+            hideBlocks();
+        } else {
+            actionIndex = actions.size() - 1;
+        }
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 2.0f);
         runTaskTimer(plugin, 100L, 1L);
     }
@@ -80,13 +85,23 @@ public final class RewindTask extends BukkitRunnable {
             cancel();
             return;
         }
+        boolean res = flags.contains(Flag.BACKWARDS)
+            ? runBackwards()
+            : runForward();
+        if (!res) {
+            if (!flags.contains(Flag.BACKWARDS)) {
+                showEntities();
+            }
+            player.sendMessage(ChatColor.YELLOW + "Rewind done!");
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 1.0f);
+            cancel();
+        }
+    }
+
+    private boolean runForward() {
         for (int i = 0; i < blocksPerTick; i += 1) {
             if (actionIndex >= actions.size()) {
-                showEntities();
-                player.sendMessage(ChatColor.YELLOW + "Rewind done!");
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 1.0f);
-                cancel();
-                return;
+                return false;
             }
             SQLAction row = actions.get(actionIndex++);
             Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
@@ -102,5 +117,23 @@ public final class RewindTask extends BukkitRunnable {
             }
             player.sendBlockChange(block.getLocation(), blockData);
         }
+        return true;
+    }
+
+    private boolean runBackwards() {
+        for (int i = 0; i < blocksPerTick; i += 1) {
+            if (actionIndex < 0) {
+                return false;
+            }
+            SQLAction row = actions.get(actionIndex--);
+            Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
+            BlockData blockData = row.getOldBlockData();
+            if (blockData == null) blockData = Material.AIR.createBlockData();
+            if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
+                blockData = Material.AIR.createBlockData();
+            }
+            player.sendBlockChange(block.getLocation(), blockData);
+        }
+        return true;
     }
 }
