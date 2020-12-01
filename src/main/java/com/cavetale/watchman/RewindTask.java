@@ -6,6 +6,8 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -71,6 +73,7 @@ public final class RewindTask extends BukkitRunnable {
             if (actionIndex >= actions.size()) {
                 showEntities();
                 player.sendMessage(ChatColor.YELLOW + "Rewind done!");
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 1.0f);
                 cancel();
                 return;
             }
