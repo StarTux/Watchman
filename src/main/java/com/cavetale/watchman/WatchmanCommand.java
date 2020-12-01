@@ -417,6 +417,7 @@ public final class WatchmanCommand implements TabExecutor {
         search.lte("z", cuboid.bz);
         search.in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK));
         search.orderByAscending("time");
+        search.orderByAscending("id");
         final int finalSpeed = speed;
         search.findListAsync(ls -> rewindCallback(player, ls, finalSpeed, cuboid));
         return true;
