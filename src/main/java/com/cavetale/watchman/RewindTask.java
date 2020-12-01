@@ -30,15 +30,15 @@ public final class RewindTask extends BukkitRunnable {
     public enum Flag {
         NO_SNOW,
         NO_HEADS,
-        BACKWARDS;
+        REVERSE;
     }
 
     public void start() {
         world = player.getWorld();
         player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick
                            + ", flags: " + flags);
-        hideEntities();
-        if (!flags.contains(Flag.BACKWARDS)) {
+        if (!flags.contains(Flag.REVERSE)) {
+            hideEntities();
             hideBlocks();
         } else {
             actionIndex = actions.size() - 1;
@@ -85,11 +85,11 @@ public final class RewindTask extends BukkitRunnable {
             cancel();
             return;
         }
-        boolean res = flags.contains(Flag.BACKWARDS)
-            ? runBackwards()
+        boolean res = flags.contains(Flag.REVERSE)
+            ? runReverse()
             : runForward();
         if (!res) {
-            if (!flags.contains(Flag.BACKWARDS)) {
+            if (!flags.contains(Flag.REVERSE)) {
                 showEntities();
             }
             player.sendMessage(ChatColor.YELLOW + "Rewind done!");
@@ -120,7 +120,10 @@ public final class RewindTask extends BukkitRunnable {
         return true;
     }
 
-    private boolean runBackwards() {
+    private boolean runReverse() {
+        if (actionIndex == actions.size() - 1) {
+            hideEntities();
+        }
         for (int i = 0; i < blocksPerTick; i += 1) {
             if (actionIndex < 0) {
                 return false;
