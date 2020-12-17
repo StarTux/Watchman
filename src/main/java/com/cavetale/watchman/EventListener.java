@@ -3,6 +3,7 @@ package com.cavetale.watchman;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -16,10 +17,19 @@ import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.metadata.FixedMetadataValue;
 
 @RequiredArgsConstructor
@@ -70,6 +80,28 @@ public final class EventListener implements Listener {
                      .setNewState(event.getBlockPlaced()));
     }
 
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+        SQLAction row = new SQLAction()
+            .setNow().setActionType(SQLAction.Type.BUCKET_EMPTY)
+            .setActorPlayer(event.getPlayer())
+            .setOldState(block);
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(row.setNewState(block)));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onPlayerBucketFill(PlayerBucketFillEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+        SQLAction row = new SQLAction()
+            .setNow().setActionType(SQLAction.Type.BUCKET_FILL)
+            .setActorPlayer(event.getPlayer())
+            .setOldState(block);
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(row.setNewState(block)));
+    }
+
     // For now, we only log player caused entity deaths.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
@@ -116,6 +148,60 @@ public final class EventListener implements Listener {
                          .setActorBlock(event.getBlock())
                          .setOldState(block));
         }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.ITEM_DROP)
+                     .setActorPlayer(event.getPlayer())
+                     .setLocation(event.getItemDrop().getLocation())
+                     .setNewState(event.getItemDrop().getItemStack()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onEntityPickupItem(EntityPickupItemEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.ITEM_DROP)
+                     .setActorEntity(event.getEntity())
+                     .setLocation(event.getItem().getLocation())
+                     .setOldState(event.getItem().getItemStack()));
+    }
+
+    @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
+    public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.COMMAND)
+                     .setActorPlayer(event.getPlayer())
+                     .setLocation(event.getPlayer().getLocation())
+                     .setNewState(event.getMessage()));
+    }
+
+    @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
+    public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        Location location = player.getLocation();
+        String message = event.getMessage();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+                plugin.store(new SQLAction()
+                             .setNow().setActionType(SQLAction.Type.CHAT)
+                             .setActorPlayer(player)
+                             .setLocation(location)
+                             .setNewState(message));
+            });
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        if (!(event.getPlayer() instanceof Player)) return;
+        Player player = (Player) event.getPlayer();
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (!(holder instanceof BlockInventoryHolder)) return;
+        Block block = ((BlockInventoryHolder) holder).getBlock();
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.INVENTORY_OPEN)
+                     .setActorPlayer(player)
+                     .setOldState(block));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)

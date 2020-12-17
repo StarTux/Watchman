@@ -35,6 +35,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 @Data
 @Table(name = "actions",
@@ -74,8 +75,15 @@ public final class SQLAction {
         PLAYER_QUIT("quit", Category.PLAYER),
         BLOCK_BREAK("break", Category.BLOCK),
         BLOCK_PLACE("place", Category.BLOCK),
+        BUCKET_EMPTY("debucket", Category.BLOCK),
+        BUCKET_FILL("bucket", Category.BLOCK),
         BLOCK_EXPLODE("explode", Category.BLOCK),
-        ENTITY_KILL("kill", Category.ENTITY);
+        ENTITY_KILL("kill", Category.ENTITY),
+        ITEM_DROP("drop", Category.INVENTORY),
+        ITEM_PICKUP("pickup", Category.INVENTORY),
+        INVENTORY_OPEN("open", Category.INVENTORY),
+        COMMAND("command", Category.CHAT),
+        CHAT("chat", Category.CHAT);
 
         public enum Category {
             /**
@@ -91,7 +99,10 @@ public final class SQLAction {
             /**
              * Entity related.
              */
-            ENTITY;
+            ENTITY,
+
+            INVENTORY,
+            CHAT;
         }
 
         public final String key;
@@ -140,6 +151,7 @@ public final class SQLAction {
     }
 
     public SQLAction setActorEntity(Entity entity) {
+        if (entity instanceof Player) return setActorPlayer((Player) entity);
         this.actorId = entity.getUniqueId();
         this.actorType = entity.getType().name().toLowerCase();
         this.actorName = entity.getCustomName();
@@ -214,6 +226,22 @@ public final class SQLAction {
         return this;
     }
 
+    public SQLAction setNewState(Entity entity) {
+        Location location = entity.getLocation();
+        this.world = location.getWorld().getName();
+        this.x = location.getBlockX();
+        this.y = location.getBlockY();
+        this.z = location.getBlockZ();
+        this.newType = entity.getType().name().toLowerCase();
+        Map<String, Object> tag = Dirty.getEntityTag(entity);
+        if (tag != null) {
+            this.newTag = Json.serialize(tag);
+        } else {
+            this.newTag = null;
+        }
+        return this;
+    }
+
     public SQLAction setOldState(Entity entity) {
         Location location = entity.getLocation();
         this.world = location.getWorld().getName();
@@ -243,6 +271,50 @@ public final class SQLAction {
         map.put("pitch", location.getPitch());
         map.put("yaw", location.getYaw());
         this.oldTag = Json.serialize(map);
+        return this;
+    }
+
+    public SQLAction setOldState(ItemStack item) {
+        oldType = item.getType().getKey().toString();
+        Map<String, Object> tag = Dirty.getItemTag(item);
+        if (tag != null) {
+            this.oldTag = Json.serialize(tag);
+        } else {
+            this.oldTag = null;
+        }
+        return this;
+    }
+
+    public SQLAction setNewState(ItemStack item) {
+        newType = item.getType().getKey().toString();
+        Map<String, Object> tag = Dirty.getItemTag(item);
+        if (tag != null) {
+            this.newTag = Json.serialize(tag);
+        } else {
+            this.newTag = null;
+        }
+        return this;
+    }
+
+    public SQLAction setNewState(String string) {
+        newType = "text";
+        newTag = string;
+        return this;
+    }
+
+    public SQLAction setLocation(Location location) {
+        this.world = location.getWorld().getName();
+        this.x = location.getBlockX();
+        this.y = location.getBlockY();
+        this.z = location.getBlockZ();
+        return this;
+    }
+
+    public SQLAction setLocation(Block block) {
+        this.world = block.getWorld().getName();
+        this.x = block.getX();
+        this.y = block.getY();
+        this.z = block.getZ();
         return this;
     }
 
@@ -441,10 +513,23 @@ public final class SQLAction {
             switch (type) {
             case BLOCK_BREAK:
             case BLOCK_EXPLODE:
-                showOld = true; showNew = false;
+            case ENTITY_KILL:
+            case INVENTORY_OPEN:
+            case ITEM_PICKUP:
+                showOld = true;
+                showNew = false;
                 break;
             case BLOCK_PLACE:
-                showOld = false; showNew = true;
+            case ITEM_DROP:
+            case CHAT:
+            case COMMAND:
+                showOld = false;
+                showNew = true;
+                break;
+            case BUCKET_EMPTY:
+            case BUCKET_FILL:
+                showOld = true;
+                showNew = true;
                 break;
             default: showOld = false; showNew = false; break;
             }
