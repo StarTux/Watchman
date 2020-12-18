@@ -4,6 +4,7 @@ import com.cavetale.core.util.Json;
 import com.cavetale.dirty.Dirty;
 import com.winthier.generic_events.GenericEvents;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -126,151 +127,151 @@ public final class SQLAction {
     public Type getType() {
         if (action == null) return null;
         try {
-            return Type.valueOf(this.action.toUpperCase());
+            return Type.valueOf(action.toUpperCase());
         } catch (IllegalArgumentException iae) {
-            WatchmanPlugin.getInstance().getLogger().warning("Unknown action type: " + this.action);
+            WatchmanPlugin.getInstance().getLogger().warning("Unknown action type: " + action);
             return null;
         }
     }
 
     public SQLAction setActionType(Type type) {
-        this.action = type.name().toLowerCase();
+        action = type.name().toLowerCase();
         return this;
     }
 
     public SQLAction setNow() {
-        this.time = new Date();
+        time = new Date();
         return this;
     }
 
     public SQLAction setActorPlayer(Player player) {
-        this.actorId = player.getUniqueId();
-        this.actorType = player.getType().name().toLowerCase();
-        this.actorName = player.getName();
+        actorId = player.getUniqueId();
+        actorType = player.getType().name().toLowerCase();
+        actorName = player.getName();
         return this;
     }
 
     public SQLAction setActorEntity(Entity entity) {
         if (entity instanceof Player) return setActorPlayer((Player) entity);
-        this.actorId = entity.getUniqueId();
-        this.actorType = entity.getType().name().toLowerCase();
-        this.actorName = entity.getCustomName();
+        actorId = entity.getUniqueId();
+        actorType = entity.getType().name().toLowerCase();
+        actorName = entity.getCustomName();
         return this;
     }
 
     public SQLAction setActorBlock(Block block) {
-        this.actorType = "block";
-        this.setActorName(block.getType().name().toLowerCase());
+        actorType = "block";
+        setActorName(block.getType().name().toLowerCase());
         return this;
     }
 
     public SQLAction setOldState(Block block) {
-        this.world = block.getWorld().getName();
-        this.x = block.getX();
-        this.y = block.getY();
-        this.z = block.getZ();
+        world = block.getWorld().getName();
+        x = block.getX();
+        y = block.getY();
+        z = block.getZ();
         oldType = block.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
-            this.oldTag = Json.serialize(tag);
+            oldTag = Json.serialize(tag);
         } else {
-            this.oldTag = null;
+            oldTag = null;
         }
         return this;
     }
 
     public SQLAction setOldState(BlockState blockState) {
-        this.world = blockState.getWorld().getName();
-        this.x = blockState.getX();
-        this.y = blockState.getY();
-        this.z = blockState.getZ();
+        world = blockState.getWorld().getName();
+        x = blockState.getX();
+        y = blockState.getY();
+        z = blockState.getZ();
         oldType = blockState.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {
-            this.oldTag = Json.serialize(tag);
+            oldTag = Json.serialize(tag);
         } else {
-            this.oldTag = null;
+            oldTag = null;
         }
         return this;
     }
 
     public SQLAction setNewState(Material mat) {
-        this.newType = mat.createBlockData().getAsString(false);
-        this.newTag = null;
+        newType = mat.createBlockData().getAsString(false);
+        newTag = null;
         return this;
     }
 
     public SQLAction setNewState(Block block) {
-        this.newType = block.getBlockData().getAsString(false);
+        newType = block.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
-            this.newTag = Json.serialize(tag);
+            newTag = Json.serialize(tag);
         } else {
-            this.newTag = null;
+            newTag = null;
         }
         return this;
     }
 
     public SQLAction setNewState(BlockState blockState) {
-        this.world = blockState.getWorld().getName();
-        this.x = blockState.getX();
-        this.y = blockState.getY();
-        this.z = blockState.getZ();
+        world = blockState.getWorld().getName();
+        x = blockState.getX();
+        y = blockState.getY();
+        z = blockState.getZ();
         newType = blockState.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {
-            this.newTag = Json.serialize(tag);
+            newTag = Json.serialize(tag);
         } else {
-            this.newTag = null;
+            newTag = null;
         }
         return this;
     }
 
     public SQLAction setNewState(Entity entity) {
         Location location = entity.getLocation();
-        this.world = location.getWorld().getName();
-        this.x = location.getBlockX();
-        this.y = location.getBlockY();
-        this.z = location.getBlockZ();
-        this.newType = entity.getType().name().toLowerCase();
+        world = location.getWorld().getName();
+        x = location.getBlockX();
+        y = location.getBlockY();
+        z = location.getBlockZ();
+        newType = entity.getType().name().toLowerCase();
         Map<String, Object> tag = Dirty.getEntityTag(entity);
         if (tag != null) {
-            this.newTag = Json.serialize(tag);
+            newTag = Json.serialize(tag);
         } else {
-            this.newTag = null;
+            newTag = null;
         }
         return this;
     }
 
     public SQLAction setOldState(Entity entity) {
         Location location = entity.getLocation();
-        this.world = location.getWorld().getName();
-        this.x = location.getBlockX();
-        this.y = location.getBlockY();
-        this.z = location.getBlockZ();
-        this.oldType = entity.getType().name().toLowerCase();
+        world = location.getWorld().getName();
+        x = location.getBlockX();
+        y = location.getBlockY();
+        z = location.getBlockZ();
+        oldType = entity.getType().name().toLowerCase();
         Map<String, Object> tag = Dirty.getEntityTag(entity);
         if (tag != null) {
-            this.oldTag = Json.serialize(tag);
+            oldTag = Json.serialize(tag);
         } else {
-            this.oldTag = null;
+            oldTag = null;
         }
         return this;
     }
 
     public SQLAction setOldState(Location location) {
-        this.world = location.getWorld().getName();
-        this.x = location.getBlockX();
-        this.y = location.getBlockY();
-        this.z = location.getBlockZ();
-        this.oldType = "location";
+        world = location.getWorld().getName();
+        x = location.getBlockX();
+        y = location.getBlockY();
+        z = location.getBlockZ();
+        oldType = "location";
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("x", location.getX());
         map.put("y", location.getY());
         map.put("z", location.getZ());
         map.put("pitch", location.getPitch());
         map.put("yaw", location.getYaw());
-        this.oldTag = Json.serialize(map);
+        oldTag = Json.serialize(map);
         return this;
     }
 
@@ -278,9 +279,9 @@ public final class SQLAction {
         oldType = item.getType().getKey().toString();
         Map<String, Object> tag = Dirty.getItemTag(item);
         if (tag != null) {
-            this.oldTag = Json.serialize(tag);
+            oldTag = Json.serialize(tag);
         } else {
-            this.oldTag = null;
+            oldTag = null;
         }
         return this;
     }
@@ -289,9 +290,9 @@ public final class SQLAction {
         newType = item.getType().getKey().toString();
         Map<String, Object> tag = Dirty.getItemTag(item);
         if (tag != null) {
-            this.newTag = Json.serialize(tag);
+            newTag = Json.serialize(tag);
         } else {
-            this.newTag = null;
+            newTag = null;
         }
         return this;
     }
@@ -303,18 +304,18 @@ public final class SQLAction {
     }
 
     public SQLAction setLocation(Location location) {
-        this.world = location.getWorld().getName();
-        this.x = location.getBlockX();
-        this.y = location.getBlockY();
-        this.z = location.getBlockZ();
+        world = location.getWorld().getName();
+        x = location.getBlockX();
+        y = location.getBlockY();
+        z = location.getBlockZ();
         return this;
     }
 
     public SQLAction setLocation(Block block) {
-        this.world = block.getWorld().getName();
-        this.x = block.getX();
-        this.y = block.getY();
-        this.z = block.getZ();
+        world = block.getWorld().getName();
+        x = block.getX();
+        y = block.getY();
+        z = block.getZ();
         return this;
     }
 
@@ -332,7 +333,7 @@ public final class SQLAction {
     }
 
     public BlockData getNewBlockData() {
-        if (this.newType == null) {
+        if (newType == null) {
             return Material.AIR.createBlockData();
         }
         try {
@@ -349,11 +350,11 @@ public final class SQLAction {
         case BLOCK_BREAK:
         case BLOCK_EXPLODE:
         case BLOCK_PLACE:
-            World bworld = Bukkit.getWorld(this.world);
+            World bworld = Bukkit.getWorld(world);
             if (bworld == null) return false;
-            Block block = bworld.getBlockAt(this.x, this.y, this.z);
+            Block block = bworld.getBlockAt(x, y, z);
             BlockData oldData;
-            if (this.oldType == null) {
+            if (oldType == null) {
                 // legacy
                 oldData = Material.AIR.createBlockData();
             } else {
@@ -365,9 +366,9 @@ public final class SQLAction {
                 }
             }
             block.setBlockData(oldData, false);
-            if (this.oldTag != null) {
+            if (oldTag != null) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> json = (Map<String, Object>) Json.deserialize(this.oldTag, Map.class);
+                Map<String, Object> json = (Map<String, Object>) Json.deserialize(oldTag, Map.class);
                 if (json != null) {
                     Dirty.setBlockTag(block, json);
                 }
@@ -386,59 +387,47 @@ public final class SQLAction {
         GregorianCalendar calNow = new GregorianCalendar();
         calNow.setTime(new Date());
         GregorianCalendar calThen = new GregorianCalendar();
-        calThen.setTime(this.time);
+        calThen.setTime(time);
         if (calNow.get(Calendar.YEAR) != calThen.get(Calendar.YEAR)) {
-            sb.append(new SimpleDateFormat("YY/MMM/dd HH:mm").format(this.time));
+            sb.append(new SimpleDateFormat("YY/MMM/dd HH:mm").format(time));
         } else if (calNow.get(Calendar.MONTH) != calThen.get(Calendar.MONTH)) {
-            sb.append(new SimpleDateFormat("MMM/dd HH:mm").format(this.time));
+            sb.append(new SimpleDateFormat("MMM/dd HH:mm").format(time));
         } else if (calNow.get(Calendar.DAY_OF_MONTH) != calThen.get(Calendar.DAY_OF_MONTH)) {
-            sb.append(new SimpleDateFormat("EEE/dd HH:mm").format(this.time));
+            sb.append(new SimpleDateFormat("EEE/dd HH:mm").format(time));
         } else {
-            sb.append(new SimpleDateFormat("HH:mm:ss").format(this.time));
+            sb.append(new SimpleDateFormat("HH:mm:ss").format(time));
         }
         sb.append(" ");
-        if (this.actorType.equals("player")) {
-            sb.append(GenericEvents.cachedPlayerName(this.actorId));
+        if (actorType.equals("player")) {
+            sb.append(GenericEvents.cachedPlayerName(actorId));
         } else {
-            sb.append(this.actorType);
+            sb.append(actorType);
         }
         sb.append(" ");
-        sb.append(this.action);
+        sb.append(action);
         sb.append(" ");
-        sb.append(this.world);
+        sb.append(world);
         sb.append(":");
-        sb.append(this.x);
+        sb.append(x);
         sb.append(",");
-        sb.append(this.y);
+        sb.append(y);
         sb.append(",");
-        sb.append(this.z);
-        Type type = this.getType();
-        boolean showOld;
-        boolean showNew;
-        if (type == null) {
-            showOld = true;
-            showNew = true;
-        } else {
-            switch (type) {
-            case BLOCK_BREAK: showOld = true; showNew = false; break;
-            case BLOCK_PLACE: showOld = false; showNew = true; break;
-            case PLAYER_JOIN: showOld = false; showNew = false; break;
-            case PLAYER_QUIT: showOld = false; showNew = false; break;
-            default: showOld = true; showNew = true; break;
+        sb.append(z);
+        Type type = getType();
+        final boolean showOld = oldType != null || oldTag != null;
+        final boolean showNew = newType != null || newTag != null;;
+        if (showOld) {
+            sb.append(" ");
+            sb.append(oldType != null ? oldType : "unknown");
+            if (oldTag != null) {
+                sb.append(oldTag);
             }
         }
-        if (showOld && this.oldType != null) {
+        if (showNew) {
             sb.append(" ");
-            sb.append(this.oldType);
-            if (this.oldTag != null) {
-                sb.append(this.oldTag);
-            }
-        }
-        if (showNew && this.newType != null) {
-            sb.append(" ");
-            sb.append(this.newType);
-            if (this.newTag != null) {
-                sb.append(this.newTag);
+            sb.append(newType != null ? newType : "unknown");
+            if (newTag != null) {
+                sb.append(newTag);
             }
         }
         sender.sendMessage(sb.toString());
@@ -451,7 +440,7 @@ public final class SQLAction {
             .fromLegacyText(ChatColor.GOLD + "/watchman info " + index);
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
         cb.append(" ").reset();
-        long interval = System.currentTimeMillis() - this.time.getTime();
+        long interval = System.currentTimeMillis() - time.getTime();
         TimeUnit unit = TimeUnit.MILLISECONDS;
         long days = unit.toDays(interval);
         long hours = unit.toHours(interval) % 24L;
@@ -459,7 +448,7 @@ public final class SQLAction {
         long seconds = unit.toSeconds(interval) % 60L;
         long millis = unit.toMillis(interval) % 1000L;
         lore = TextComponent
-            .fromLegacyText(new SimpleDateFormat("YY/MM/dd HH:mm:ss.SSS").format(this.time));
+            .fromLegacyText(new SimpleDateFormat("YY/MM/dd HH:mm:ss.SSS").format(time));
         // Build time format
         StringBuilder sb = new StringBuilder();
         if (days > 0) sb.append("" + ChatColor.DARK_RED + days + "d");
@@ -469,86 +458,65 @@ public final class SQLAction {
         cb.append(sb.toString()).color(ChatColor.GRAY);
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
         cb.append(" ").reset();
-        if (this.actorType.equals("player")) {
-            String name = GenericEvents.cachedPlayerName(this.actorId);
+        if (actorType.equals("player")) {
+            String name = GenericEvents.cachedPlayerName(actorId);
             lore = TextComponent
-                .fromLegacyText("Name: " + name + "\n" + "UUID: " + this.actorId);
+                .fromLegacyText("Name: " + name + "\n" + "UUID: " + actorId);
             cb.append(name).color(ChatColor.BLUE);
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
             cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg " + name));
-            cb.insertion("" + this.actorId);
+            cb.insertion("" + actorId);
         } else {
             lore = TextComponent
-                .fromLegacyText("Type: " + this.actorType + "\n" + "UUID: " + this.actorId);
-            cb.append(this.actorType).color(ChatColor.DARK_GREEN);
+                .fromLegacyText("Type: " + actorType + "\n" + "UUID: " + actorId);
+            cb.append(actorType).color(ChatColor.DARK_GREEN);
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
             cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
-                                    "/summon " + this.actorType));
-            cb.insertion("" + this.actorId);
+                                    "/summon " + actorType));
+            cb.insertion("" + actorId);
         }
         cb.append(" ");
-        Type type = this.getType();
+        Type type = getType();
         if (type == null) {
-            cb.append(this.action).color(ChatColor.DARK_RED);
+            cb.append(action).color(ChatColor.DARK_RED);
         } else {
             cb.append(type.human).color(ChatColor.YELLOW);
         }
         if (meta.location == null) {
             cb.append(" ");
-            cb.append(this.world).color(ChatColor.DARK_GRAY).insertion(this.world);
+            cb.append(world).color(ChatColor.DARK_GRAY).insertion(world);
             cb.append(":");
-            String coords = this.x + "," + this.y + "," + this.z;
-            String coords2 = this.x + " " + this.y + " " + this.z;
+            String coords = x + "," + y + "," + z;
+            String coords2 = x + " " + y + " " + z;
             cb.append(coords).color(ChatColor.DARK_GRAY).insertion(coords2);
             cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp " + coords2));
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                                     TextComponent.fromLegacyText(coords)));
         }
-        boolean showOld;
-        boolean showNew;
-        if (type == null) {
-            showOld = false;
-            showNew = false;
-        } else {
-            switch (type) {
-            case BLOCK_BREAK:
-            case BLOCK_EXPLODE:
-            case ENTITY_KILL:
-            case INVENTORY_OPEN:
-            case ITEM_PICKUP:
-                showOld = true;
-                showNew = false;
-                break;
-            case BLOCK_PLACE:
-            case ITEM_DROP:
-            case CHAT:
-            case COMMAND:
-                showOld = false;
-                showNew = true;
-                break;
-            case BUCKET_EMPTY:
-            case BUCKET_FILL:
-                showOld = true;
-                showNew = true;
-                break;
-            default: showOld = false; showNew = false; break;
-            }
-        }
-        if (showOld && this.oldType != null) {
+        final boolean showOld = oldType != null || oldTag != null;
+        final boolean showNew = newType != null || newTag != null;
+        if (showOld) {
             cb.append(" ");
-            lore = TextComponent
-                .fromLegacyText("Type: " + this.oldType + "\n" + "Tag: " + this.oldTag);
-            cb.append(this.oldType).color(ChatColor.RED);
+            List<String> lines = new ArrayList<>(2);
+            if (oldType != null) lines.add(ChatColor.GRAY + "Type " + ChatColor.WHITE + oldType);
+            if (oldTag != null) lines.add(ChatColor.GRAY + "Tag " + ChatColor.WHITE + oldTag);
+            lore = TextComponent.fromLegacyText(String.join("\n", lines));
+            String text = oldType != null ? oldType : "Unknown";
+            cb.append(text).color(ChatColor.RED);
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
-            cb.insertion(this.oldType);
+            cb.insertion(text);
         }
-        if (showNew && this.newType != null) {
+        if (showNew) {
+            if (showOld) cb.append(" =>").color(ChatColor.DARK_GRAY);
             cb.append(" ");
-            lore = TextComponent
-                .fromLegacyText("Type: " + this.newType + "\n" + "Tag: " + this.newTag);
-            cb.append(this.newType).color(ChatColor.GREEN);
+            List<String> lines = new ArrayList<>(2);
+            if (newType != null) lines.add(ChatColor.GRAY + "Type " + ChatColor.WHITE + newType);
+            if (newTag != null) lines.add(ChatColor.GRAY + "Tag " + ChatColor.WHITE + newTag);
+            lore = TextComponent.fromLegacyText(String.join("\n", lines));
+            String text = newType != null ? newType : "Unknown";
+            cb.append(text).color(ChatColor.GREEN);
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
-            cb.insertion(this.newType);
+            cb.insertion(text);
         }
         player.spigot().sendMessage(cb.create());
     }
