@@ -162,13 +162,13 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onEntityPickupItem(EntityPickupItemEvent event) {
         plugin.store(new SQLAction()
-                     .setNow().setActionType(SQLAction.Type.ITEM_DROP)
+                     .setNow().setActionType(SQLAction.Type.ITEM_PICKUP)
                      .setActorEntity(event.getEntity())
                      .setLocation(event.getItem().getLocation())
                      .setOldState(event.getItem().getItemStack()));
     }
 
-    @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.COMMAND)
@@ -177,7 +177,7 @@ public final class EventListener implements Listener {
                      .setNewState(event.getMessage()));
     }
 
-    @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         Location location = player.getLocation();
