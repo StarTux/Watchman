@@ -415,7 +415,7 @@ public final class SQLAction {
         sb.append(z);
         Type type = getType();
         final boolean showOld = oldType != null || oldTag != null;
-        final boolean showNew = newType != null || newTag != null;;
+        final boolean showNew = newType != null || newTag != null;
         if (showOld) {
             sb.append(" ");
             sb.append(oldType != null ? oldType : "unknown");

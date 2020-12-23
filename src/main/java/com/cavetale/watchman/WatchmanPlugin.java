@@ -19,7 +19,7 @@ public final class WatchmanPlugin extends JavaPlugin {
     List<SQLAction> storage = new ArrayList<>();
     WatchmanCommand watchmanCommand = new WatchmanCommand(this);
     EventListener eventListener = new EventListener(this);
-    EntityHider entityHider;
+    private EntityHider entityHider = null;
 
     @Override
     public void onEnable() {
@@ -33,7 +33,6 @@ public final class WatchmanPlugin extends JavaPlugin {
         watchmanCommand.enable();
         eventListener.enable();
         getServer().getScheduler().runTaskTimer(this, this::drainStorage, 20, 20);
-        entityHider = new EntityHider(this, EntityHider.Policy.BLACKLIST);
     }
 
     @Override
@@ -130,5 +129,12 @@ public final class WatchmanPlugin extends JavaPlugin {
             cb.color(ChatColor.DARK_GRAY);
         }
         player.spigot().sendMessage(cb.create());
+    }
+
+    public EntityHider getEntityHider() {
+        if (entityHider == null) {
+            entityHider = new EntityHider(this, EntityHider.Policy.BLACKLIST);
+        }
+        return entityHider;
     }
 }
