@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -13,6 +14,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.scheduler.BukkitRunnable;
 
 @RequiredArgsConstructor
@@ -24,13 +26,17 @@ public final class RewindTask extends BukkitRunnable {
     private final int blocksPerTick;
     private final Cuboid cuboid;
     private final Set<Flag> flags;
+    private final Location moveFrom;
+    private final Location moveTo;
     private int actionIndex = 0;
     private World world;
 
     public enum Flag {
         NO_SNOW,
         NO_HEADS,
-        REVERSE;
+        NO_TNT,
+        REVERSE,
+        MOVE;
     }
 
     public void start() {
@@ -45,6 +51,9 @@ public final class RewindTask extends BukkitRunnable {
         }
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 2.0f);
         runTaskTimer(plugin, 100L, 1L);
+        if (flags.contains(Flag.MOVE) && moveFrom != null) {
+            player.teleport(moveFrom, TeleportCause.PLUGIN);
+        }
     }
 
     public void hideEntities() {
@@ -98,7 +107,33 @@ public final class RewindTask extends BukkitRunnable {
         }
     }
 
+    private Location getMoveLocation() {
+        double progress = (double) actionIndex / (double) actions.size();
+        progress = Math.max(0, Math.min(1, progress));
+        if (flags.contains(Flag.REVERSE)) progress = 1.0 - progress;
+        double ssergorp = 1.0 - progress;
+        double x = moveFrom.getX() * ssergorp + moveTo.getX() * progress;
+        double y = moveFrom.getY() * ssergorp + moveTo.getY() * progress;
+        double z = moveFrom.getZ() * ssergorp + moveTo.getZ() * progress;
+        float pitch = moveFrom.getPitch() * (float) ssergorp + moveTo.getPitch() * (float) progress;
+        float yaw1 = moveFrom.getYaw();
+        float yaw2 = moveTo.getYaw();
+        while (yaw1 < 0) yaw1 += 360.0f;
+        while (yaw2 < 0) yaw2 += 360.0f;
+        if (Math.abs(yaw2 - yaw1) > Math.abs((yaw2 - 360.0f) - yaw1)) {
+            yaw2 -= 360.0f;
+        } else if (Math.abs(yaw2 - yaw1) > Math.abs((yaw2 + 360.0f) - yaw1)) {
+            yaw2 += 360.0f;
+        }
+        float yaw = yaw1 * (float) ssergorp + yaw2 * (float) progress;
+        Location location = new Location(player.getWorld(), x, y, z, yaw, pitch);
+        return location;
+    }
+
     private boolean runForward() {
+        if (flags.contains(Flag.MOVE)) {
+            player.teleport(getMoveLocation(), TeleportCause.PLUGIN);
+        }
         for (int i = 0; i < blocksPerTick; i += 1) {
             if (actionIndex >= actions.size()) {
                 return false;
@@ -115,12 +150,18 @@ public final class RewindTask extends BukkitRunnable {
                     continue;
                 }
             }
+            if (flags.contains(Flag.NO_TNT) && blockData.getMaterial() == Material.TNT) {
+                continue;
+            }
             player.sendBlockChange(block.getLocation(), blockData);
         }
         return true;
     }
 
     private boolean runReverse() {
+        if (flags.contains(Flag.MOVE)) {
+            player.teleport(getMoveLocation(), TeleportCause.PLUGIN);
+        }
         if (actionIndex == actions.size() - 1) {
             hideEntities();
         }

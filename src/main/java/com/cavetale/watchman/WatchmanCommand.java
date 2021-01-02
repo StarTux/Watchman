@@ -26,6 +26,9 @@ public final class WatchmanCommand implements TabExecutor {
     private final WatchmanPlugin plugin;
     private List<SQLAction> consoleSearch = null;
 
+    private Location pos1;
+    private Location pos2;
+
     public void enable() {
         plugin.getCommand("watchman").setExecutor(this);
     }
@@ -329,6 +332,14 @@ public final class WatchmanCommand implements TabExecutor {
             sender.sendMessage("Storage: " + plugin.storage.size() + " rows");
             sender.sendMessage("Backlog: " + plugin.database.getBacklogSize());
             return true;
+        case "pos1":
+            pos1 = player.getLocation();
+            player.sendMessage("pos1 saved");
+            return true;
+        case "pos2":
+            pos2 = player.getLocation();
+            player.sendMessage("pos2 saved");
+            return true;
         case "rewind": return rewindCommand(player, Arrays.copyOfRange(args, 1, args.length));
         default:
             break;
@@ -436,7 +447,9 @@ public final class WatchmanCommand implements TabExecutor {
     }
 
     void rewindCallback(Player player, List<SQLAction> actions, int speed, Cuboid cuboid, Set<RewindTask.Flag> flags) {
-        RewindTask task = new RewindTask(plugin, player, actions, 100L, speed, cuboid, flags);
+        Location loc1 = pos1 != null && pos1.getWorld().equals(player.getWorld()) ? pos1 : player.getLocation();
+        Location loc2 = pos2 != null && pos2.getWorld().equals(player.getWorld()) ? pos2 : player.getLocation();
+        RewindTask task = new RewindTask(plugin, player, actions, 100L, speed, cuboid, flags, loc1, loc2);
         task.start();
     }
 }

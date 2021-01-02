@@ -5,8 +5,8 @@ version: 0.1
 api-version: 1.13
 website: http://cavetale.com
 main: com.cavetale.watchman.WatchmanPlugin
-depend: [Dirty, SQL, PlayerCache, ProtocolLib, Core]
-softdepend: [WorldEdit]
+depend: [Dirty, SQL, PlayerCache, Core]
+softdepend: [WorldEdit, ProtocolLib]
 commands:
   watchman:
     aliases: [ wm ]
