@@ -76,6 +76,8 @@ public final class SQLAction {
         PLAYER_QUIT("quit", Category.PLAYER),
         BLOCK_BREAK("break", Category.BLOCK),
         BLOCK_PLACE("place", Category.BLOCK),
+        BLOCK_CHANGE("change", Category.BLOCK),
+        BLOCK_GROW("grow", Category.BLOCK),
         BUCKET_EMPTY("debucket", Category.BLOCK),
         BUCKET_FILL("bucket", Category.BLOCK),
         BLOCK_EXPLODE("explode", Category.BLOCK),
@@ -145,6 +147,10 @@ public final class SQLAction {
     }
 
     public SQLAction setActorPlayer(Player player) {
+        if (player == null) {
+            actorType = "unknown";
+            return this;
+        }
         actorId = player.getUniqueId();
         actorType = player.getType().name().toLowerCase();
         actorName = player.getName();
@@ -152,6 +158,10 @@ public final class SQLAction {
     }
 
     public SQLAction setActorEntity(Entity entity) {
+        if (entity == null) {
+            actorType = "unknown";
+            return this;
+        }
         if (entity instanceof Player) return setActorPlayer((Player) entity);
         actorId = entity.getUniqueId();
         actorType = entity.getType().name().toLowerCase();
@@ -162,6 +172,11 @@ public final class SQLAction {
     public SQLAction setActorBlock(Block block) {
         actorType = "block";
         setActorName(block.getType().name().toLowerCase());
+        return this;
+    }
+
+    public SQLAction setActorName(String name) {
+        actorType = name;
         return this;
     }
 
@@ -224,6 +239,11 @@ public final class SQLAction {
         } else {
             newTag = null;
         }
+        return this;
+    }
+
+    public SQLAction setNewState(BlockData blockData) {
+        newType = blockData.getAsString(false);
         return this;
     }
 

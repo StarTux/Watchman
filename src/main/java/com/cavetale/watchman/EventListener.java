@@ -13,8 +13,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
@@ -27,6 +29,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryHolder;
@@ -245,5 +248,49 @@ public final class EventListener implements Listener {
                     player.setMetadata(Meta.LOOKUP_META, new FixedMetadataValue(plugin, meta));
                     plugin.showActionPage(player, actions, meta, 0);
                 });
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.BLOCK_CHANGE)
+                     .setActorEntity(event.getEntity())
+                     .setOldState(event.getBlock())
+                     .setNewState(event.getBlockData()));
+        Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
+        if (otherHalf != null) {
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.BLOCK_CHANGE)
+                         .setActorEntity(event.getEntity())
+                         .setOldState(otherHalf)
+                         .setNewState(event.getTo()));
+
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockGrow(BlockGrowEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.BLOCK_GROW)
+                     .setActorName("nature")
+                     .setOldState(event.getBlock())
+                     .setNewState(event.getNewState()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onStructureGrow(StructureGrowEvent event) {
+        Player player = event.getPlayer();
+        for (BlockState state : event.getBlocks()) {
+            SQLAction action = new SQLAction()
+                .setNow().setActionType(SQLAction.Type.BLOCK_GROW)
+                .setOldState(state.getBlock())
+                .setNewState(state);
+            if (player != null) {
+                action.setActorPlayer(player);
+            } else {
+                action.setActorName("nature");
+            }
+            plugin.store(action);
+        }
     }
 }
