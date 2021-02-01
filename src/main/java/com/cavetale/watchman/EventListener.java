@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -253,18 +254,26 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        BlockData oldBlockData = event.getBlock().getBlockData();
+        BlockData newBlockData = event.getBlockData();
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_CHANGE)
                      .setActorEntity(event.getEntity())
                      .setOldState(event.getBlock())
-                     .setNewState(event.getBlockData()));
-        Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
+                     .setNewState(newBlockData));
+        // Here it gets a little complicated because this could be a
+        // block break or placement.
+        BlockData nonAirBlockData = oldBlockData.getMaterial().isEmpty()
+            ? newBlockData
+            : oldBlockData;
+        Block otherHalf = Blocks.getOtherHalf(event.getBlock(), nonAirBlockData);
         if (otherHalf != null) {
             plugin.store(new SQLAction()
                          .setNow().setActionType(SQLAction.Type.BLOCK_CHANGE)
                          .setActorEntity(event.getEntity())
-                         .setOldState(otherHalf)
-                         .setNewState(event.getTo()));
+                         .setLocation(otherHalf)
+                         .setOldState(otherHalf.getBlockData())
+                         .setNewState(Blocks.toOtherHalf(newBlockData)));
 
         }
     }
@@ -276,6 +285,15 @@ public final class EventListener implements Listener {
                      .setActorTypeName("nature")
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
+        Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getNewState().getBlockData());
+        if (otherHalf != null) {
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.BLOCK_CHANGE)
+                         .setActorTypeName("nature")
+                         .setOldState(otherHalf)
+                         .setNewState(Blocks.toOtherHalf(event.getNewState().getBlockData())));
+
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -302,5 +320,13 @@ public final class EventListener implements Listener {
                      .setActorTypeName("unknown")
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
+        Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
+        if (otherHalf != null) {
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.BLOCK_DESTROY)
+                         .setActorTypeName("unknown")
+                         .setOldState(otherHalf)
+                         .setNewState(event.getBlock().getBlockData()));
+        }
     }
 }

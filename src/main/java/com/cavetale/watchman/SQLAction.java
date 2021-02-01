@@ -211,6 +211,11 @@ public final class SQLAction {
         return this;
     }
 
+    public SQLAction setOldState(BlockData blockData) {
+        oldType = blockData.getAsString(false);
+        return this;
+    }
+
     public SQLAction setNewState(Material mat) {
         newType = mat.createBlockData().getAsString(false);
         newTag = null;
@@ -229,10 +234,6 @@ public final class SQLAction {
     }
 
     public SQLAction setNewState(BlockState blockState) {
-        world = blockState.getWorld().getName();
-        x = blockState.getX();
-        y = blockState.getY();
-        z = blockState.getZ();
         newType = blockState.getBlockData().getAsString(false);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {

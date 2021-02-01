@@ -44,6 +44,40 @@ public final class Blocks {
         return null;
     }
 
+    /**
+     * Return a copy with the data of the other block half. This
+     * mirrors the behavior of getOtherHalf().
+     */
+    public static BlockData toOtherHalf(BlockData blockData) {
+        BlockData data = blockData.clone();
+        if (data instanceof Bisected) {
+            Bisected bis = (Bisected) data;
+            switch (bis.getHalf()) {
+            case TOP:
+                bis.setHalf(Bisected.Half.BOTTOM);
+                break;
+            case BOTTOM:
+                bis.setHalf(Bisected.Half.TOP);
+                break;
+            default:
+                break;
+            }
+        } else if (data instanceof Bed) {
+            Bed bed = (Bed) data;
+            switch (bed.getPart()) {
+            case FOOT:
+                bed.setPart(Bed.Part.HEAD);
+                break;
+            case HEAD:
+                bed.setPart(Bed.Part.FOOT);
+                break;
+            default:
+                break;
+            }
+        }
+        return data;
+    }
+
     public static BlockFace rotateLeft(BlockFace face) {
         switch (face) {
         case NORTH: return BlockFace.WEST;
