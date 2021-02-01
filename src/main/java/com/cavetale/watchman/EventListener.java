@@ -1,5 +1,6 @@
 package com.cavetale.watchman;
 
+import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
@@ -292,5 +293,14 @@ public final class EventListener implements Listener {
             }
             plugin.store(action);
         }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockDestroy(BlockDestroyEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.BLOCK_DESTROY)
+                     .setActorName("unknown")
+                     .setOldState(event.getBlock())
+                     .setNewState(event.getNewState()));
     }
 }

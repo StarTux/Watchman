@@ -78,6 +78,7 @@ public final class SQLAction {
         BLOCK_PLACE("place", Category.BLOCK),
         BLOCK_CHANGE("change", Category.BLOCK),
         BLOCK_GROW("grow", Category.BLOCK),
+        BLOCK_DESTROY("destroy", Category.BLOCK),
         BUCKET_EMPTY("debucket", Category.BLOCK),
         BUCKET_FILL("bucket", Category.BLOCK),
         BLOCK_EXPLODE("explode", Category.BLOCK),
@@ -478,7 +479,9 @@ public final class SQLAction {
         cb.append(sb.toString()).color(ChatColor.GRAY);
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
         cb.append(" ").reset();
-        if (actorType.equals("player")) {
+        if (actorType == null) {
+            cb.append("null").color(ChatColor.RED);
+        } else if (actorType.equals("player")) {
             String name = GenericEvents.cachedPlayerName(actorId);
             lore = TextComponent
                 .fromLegacyText("Name: " + name + "\n" + "UUID: " + actorId);
@@ -486,6 +489,10 @@ public final class SQLAction {
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
             cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/msg " + name));
             cb.insertion("" + actorId);
+        } else if (actorType.equals("nature")) {
+            cb.append("nature").color(ChatColor.GREEN);
+        } else if (actorType.equals("unknown")) {
+            cb.append("red").color(ChatColor.RED);
         } else {
             lore = TextComponent
                 .fromLegacyText("Type: " + actorType + "\n" + "UUID: " + actorId);
