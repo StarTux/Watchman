@@ -273,7 +273,7 @@ public final class EventListener implements Listener {
     public void onBlockGrow(BlockGrowEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_GROW)
-                     .setActorName("nature")
+                     .setActorTypeName("nature")
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
     }
@@ -289,7 +289,7 @@ public final class EventListener implements Listener {
             if (player != null) {
                 action.setActorPlayer(player);
             } else {
-                action.setActorName("nature");
+                action.setActorTypeName("nature");
             }
             plugin.store(action);
         }
@@ -299,7 +299,7 @@ public final class EventListener implements Listener {
     public void onBlockDestroy(BlockDestroyEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_DESTROY)
-                     .setActorName("unknown")
+                     .setActorTypeName("unknown")
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
     }

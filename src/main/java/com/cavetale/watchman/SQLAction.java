@@ -176,7 +176,7 @@ public final class SQLAction {
         return this;
     }
 
-    public SQLAction setActorName(String name) {
+    public SQLAction setActorTypeName(String name) {
         actorType = name;
         return this;
     }
