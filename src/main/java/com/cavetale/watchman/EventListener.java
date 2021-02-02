@@ -15,9 +15,11 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -46,7 +48,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockBreak(BlockBreakEvent event) {
+    void onBlockBreak(BlockBreakEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_BREAK)
                      .setActorPlayer(event.getPlayer())
@@ -65,7 +67,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockPlace(BlockPlaceEvent event) {
+    void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
         if (event instanceof BlockMultiPlaceEvent) {
             BlockMultiPlaceEvent multiEvent = (BlockMultiPlaceEvent) event;
@@ -86,7 +88,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+    void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
         SQLAction row = new SQLAction()
@@ -97,7 +99,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onPlayerBucketFill(PlayerBucketFillEvent event) {
+    void onPlayerBucketFill(PlayerBucketFillEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
         SQLAction row = new SQLAction()
@@ -109,7 +111,7 @@ public final class EventListener implements Listener {
 
     // For now, we only log player caused entity deaths.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onEntityDeath(EntityDeathEvent event) {
+    void onEntityDeath(EntityDeathEvent event) {
         if (event.getEntity().getKiller() == null) return;
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.ENTITY_KILL)
@@ -119,7 +121,7 @@ public final class EventListener implements Listener {
 
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onPlayerJoin(PlayerJoinEvent event) {
+    void onPlayerJoin(PlayerJoinEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.PLAYER_JOIN)
                      .setActorPlayer(event.getPlayer())
@@ -127,7 +129,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onPlayerQuit(PlayerQuitEvent event) {
+    void onPlayerQuit(PlayerQuitEvent event) {
         plugin.exit(event.getPlayer());
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.PLAYER_QUIT)
@@ -136,7 +138,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onEntityExplode(EntityExplodeEvent event) {
+    void onEntityExplode(EntityExplodeEvent event) {
         for (Block block: event.blockList()) {
             plugin.store(new SQLAction()
                          .setNow().setActionType(SQLAction.Type.BLOCK_EXPLODE)
@@ -146,7 +148,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockExplode(BlockExplodeEvent event) {
+    void onBlockExplode(BlockExplodeEvent event) {
         for (Block block: event.blockList()) {
             plugin.store(new SQLAction()
                          .setNow().setActionType(SQLAction.Type.BLOCK_EXPLODE)
@@ -156,7 +158,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onPlayerDropItem(PlayerDropItemEvent event) {
+    void onPlayerDropItem(PlayerDropItemEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.ITEM_DROP)
                      .setActorPlayer(event.getPlayer())
@@ -165,7 +167,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onEntityPickupItem(EntityPickupItemEvent event) {
+    void onEntityPickupItem(EntityPickupItemEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.ITEM_PICKUP)
                      .setActorEntity(event.getEntity())
@@ -174,7 +176,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
-    public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+    void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.COMMAND)
                      .setActorPlayer(event.getPlayer())
@@ -183,7 +185,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
-    public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
+    void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         Location location = player.getLocation();
         String message = event.getMessage();
@@ -197,7 +199,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onInventoryOpen(InventoryOpenEvent event) {
+    void onInventoryOpen(InventoryOpenEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
         Player player = (Player) event.getPlayer();
         InventoryHolder holder = event.getInventory().getHolder();
@@ -210,7 +212,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerInteract(PlayerInteractEvent event) {
+    void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (!event.getPlayer().hasMetadata(Meta.TOOL_KEY)) return;
         if (!event.getPlayer().hasPermission("watchman.watchman")) return;
@@ -253,7 +255,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+    void onEntityChangeBlock(EntityChangeBlockEvent event) {
         BlockData oldBlockData = event.getBlock().getBlockData();
         BlockData newBlockData = event.getBlockData();
         plugin.store(new SQLAction()
@@ -279,7 +281,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockGrow(BlockGrowEvent event) {
+    void onBlockGrow(BlockGrowEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_GROW)
                      .setActorTypeName("nature")
@@ -297,7 +299,25 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onStructureGrow(StructureGrowEvent event) {
+    void onBlockForm(BlockFormEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
+                     .setActorTypeName("nature")
+                     .setOldState(event.getBlock())
+                     .setNewState(event.getNewState()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onEntityBlockForm(EntityBlockFormEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
+                     .setActorEntity(event.getEntity())
+                     .setOldState(event.getBlock())
+                     .setNewState(event.getNewState()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onStructureGrow(StructureGrowEvent event) {
         Player player = event.getPlayer();
         for (BlockState state : event.getBlocks()) {
             SQLAction action = new SQLAction()
@@ -314,7 +334,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockDestroy(BlockDestroyEvent event) {
+    void onBlockDestroy(BlockDestroyEvent event) {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_DESTROY)
                      .setActorTypeName("unknown")

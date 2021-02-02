@@ -78,6 +78,7 @@ public final class SQLAction {
         BLOCK_PLACE("place", Category.BLOCK),
         BLOCK_CHANGE("change", Category.BLOCK),
         BLOCK_GROW("grow", Category.BLOCK),
+        BLOCK_FORM("form", Category.BLOCK),
         BLOCK_DESTROY("destroy", Category.BLOCK),
         BUCKET_EMPTY("debucket", Category.BLOCK),
         BUCKET_FILL("bucket", Category.BLOCK),
