@@ -20,11 +20,15 @@ public final class WatchmanPlugin extends JavaPlugin {
     WatchmanCommand watchmanCommand = new WatchmanCommand(this);
     EventListener eventListener = new EventListener(this);
     private EntityHider entityHider = null;
+    protected long deleteActionsAfter = 10L;
+    protected boolean eventBlockGrow;
+    protected boolean eventBlockForm;
+    protected boolean eventEntityBlockForm;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        reloadConfig();
+        loadConf();
         instance = this;
         database = new SQLDatabase(this);
         database.registerTables(SQLAction.class);
@@ -44,6 +48,14 @@ public final class WatchmanPlugin extends JavaPlugin {
         database.waitForAsyncTask();
     }
 
+    void loadConf() {
+        reloadConfig();
+        deleteActionsAfter = getConfig().getLong("DeleteActionsAfter", 10L);
+        eventBlockGrow = getConfig().getBoolean("Events.BlockGrow");
+        eventBlockForm = getConfig().getBoolean("Events.BlockForm");
+        eventEntityBlockForm = getConfig().getBoolean("Events.EntityBlockForm");
+    }
+
     void exit(Player player) {
         player.removeMetadata(Meta.TOOL_KEY, this);
         player.removeMetadata(Meta.LOOKUP, this);
@@ -51,7 +63,7 @@ public final class WatchmanPlugin extends JavaPlugin {
     }
 
     void deleteExpiredLogs() {
-        long days = getConfig().getLong("DeleteActionsAfter", 10L);
+        long days = deleteActionsAfter;
         Date then = new Date(System.currentTimeMillis()
                              - days * 24L * 60L * 60L * 1000L);
         getLogger().info("Deleting actions older than " + days + " days (" + then + ")");

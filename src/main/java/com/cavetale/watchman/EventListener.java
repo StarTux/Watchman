@@ -1,6 +1,7 @@
 package com.cavetale.watchman;
 
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
+import io.papermc.paper.event.block.PlayerShearBlockEvent;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
@@ -107,6 +108,15 @@ public final class EventListener implements Listener {
             .setActorPlayer(event.getPlayer())
             .setOldState(block);
         Bukkit.getScheduler().runTask(plugin, () -> plugin.store(row.setNewState(block)));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onPlayerBlockShear(PlayerShearBlockEvent event) {
+        SQLAction action = new SQLAction()
+            .setNow().setActionType(SQLAction.Type.BLOCK_SHEAR)
+            .setActorPlayer(event.getPlayer())
+            .setOldState(event.getBlock());
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setNewState(event.getBlock())));
     }
 
     // For now, we only log player caused entity deaths.
@@ -282,6 +292,7 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     void onBlockGrow(BlockGrowEvent event) {
+        if (!plugin.eventBlockGrow) return;
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_GROW)
                      .setActorTypeName("nature")
@@ -300,6 +311,7 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     void onBlockForm(BlockFormEvent event) {
+        if (!plugin.eventBlockForm) return;
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
                      .setActorTypeName("nature")
@@ -309,6 +321,7 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     void onEntityBlockForm(EntityBlockFormEvent event) {
+        if (!plugin.eventEntityBlockForm) return;
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
                      .setActorEntity(event.getEntity())

@@ -1,1 +1,6 @@
 DeleteActionsAfter: 10 # days
+# Allow disabling some high-frequency events
+Events:
+  BlockGrow: false
+  BlockForm: false
+  EntityBlockForm: false
