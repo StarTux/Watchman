@@ -328,6 +328,7 @@ public final class WatchmanCommand implements TabExecutor {
             action.showDetails(player, num);
             return true;
         }
+        case "rank": return rankCommand(player, Arrays.copyOfRange(args, 1, args.length));
         case "debug":
             sender.sendMessage("Storage: " + plugin.storage.size() + " rows");
             sender.sendMessage("Backlog: " + plugin.database.getBacklogSize());
@@ -450,5 +451,43 @@ public final class WatchmanCommand implements TabExecutor {
         Location loc2 = pos2 != null && pos2.getWorld().equals(player.getWorld()) ? pos2 : player.getLocation();
         RewindTask task = new RewindTask(plugin, player, actions, 100L, speed, cuboid, flags, loc1, loc2);
         task.start();
+    }
+
+    boolean rankCommand(Player player, String[] args) {
+        if (args.length != 0) return false;
+        Cuboid cuboid = WorldEdit.getSelection(player);
+        if (cuboid == null) {
+            player.sendMessage(ChatColor.RED + "No selection!");
+            return true;
+        }
+        String sql = "SELECT `actor_name`, `action`, count(*) c FROM `" + plugin.database.getTable(SQLAction.class).getTableName() + "`"
+            + " WHERE `actor_name` IS NOT NULL"
+            + " AND `world` = '" + player.getWorld().getName() + "'"
+            + " AND `x` BETWEEN " + cuboid.ax + " AND " + cuboid.bx
+            + " AND `y` BETWEEN " + cuboid.ay + " AND " + cuboid.by
+            + " AND `z` BETWEEN " + cuboid.az + " AND " + cuboid.bz
+            + " AND `action` IN ("
+            + SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK).stream().map(s -> "'" + s + "'").collect(Collectors.joining(", "))
+            + ")"
+            + " GROUP BY `actor_name`, `action`"
+            + " ORDER BY `c` ASC";
+        plugin.database.executeQueryAsync(sql, resultSet -> {
+                int total = 0;
+                try {
+                    while (resultSet.next()) {
+                        String name = resultSet.getString("actor_name");
+                        String action = resultSet.getString("action");
+                        int count = resultSet.getInt("c");
+                        player.sendMessage(" " + ChatColor.YELLOW + count
+                                           + " " + ChatColor.RED + action
+                                           + " " + ChatColor.WHITE + name);
+                        total += 1;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                player.sendMessage("Total " + total);
+            });
+        return true;
     }
 }

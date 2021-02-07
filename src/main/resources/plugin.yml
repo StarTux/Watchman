@@ -28,6 +28,7 @@ commands:
         (r)adius:RAD|world|global - Search radius
         (t)time:SECONDS - Limit time
         (w)orld:WORLD - World name
+      /wm rank - Rank players by actions in WE selection
       /wm rewind [blocks_per_tick] [flags...] - Rewind WE selection
 permissions:
   watchman.watchman:
