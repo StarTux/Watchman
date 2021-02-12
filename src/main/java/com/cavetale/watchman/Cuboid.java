@@ -1,5 +1,7 @@
 package com.cavetale.watchman;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.Value;
 import org.bukkit.Location;
@@ -116,5 +118,17 @@ public final class Cuboid {
 
     public Vec3i getMax() {
         return new Vec3i(bx, by, bz);
+    }
+
+    public List<Vec3i> enumerate() {
+        List<Vec3i> result = new ArrayList<>(getVolume());
+        for (int y = ay; y <= by; y += 1) {
+            for (int z = az; z <= bz; z += 1) {
+                for (int x = ax; x <= bx; x += 1) {
+                    result.add(new Vec3i(x, y, z));
+                }
+            }
+        }
+        return result;
     }
 }

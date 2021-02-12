@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -15,6 +16,9 @@ import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -342,6 +346,7 @@ public final class WatchmanCommand implements TabExecutor {
             player.sendMessage("pos2 saved");
             return true;
         case "rewind": return rewindCommand(player, Arrays.copyOfRange(args, 1, args.length));
+        case "fake": return fakeCommand(player, Arrays.copyOfRange(args, 1, args.length));
         default:
             break;
         }
@@ -488,6 +493,48 @@ public final class WatchmanCommand implements TabExecutor {
                 }
                 player.sendMessage("Total " + total);
             });
+        return true;
+    }
+
+    boolean fakeCommand(Player player, String[] args) {
+        if (args.length != 0) return false;
+        Cuboid cuboid = WorldEdit.getSelection(player);
+        if (cuboid == null) {
+            player.sendMessage(ChatColor.RED + "No selection!");
+            return true;
+        }
+        World world = player.getWorld();
+        Set<Vec3i> ignore = new HashSet<>();
+        plugin.database.find(SQLAction.class)
+            .eq("world", world.getName())
+            .between("x", cuboid.ax, cuboid.bx)
+            .between("y", cuboid.ay, cuboid.by)
+            .between("z", cuboid.az, cuboid.bz)
+            .in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK))
+            .findListAsync(list -> {
+                    if (!player.isOnline() || !player.getWorld().equals(world)) return;
+                    for (SQLAction row : list) {
+                        if (ignore.contains(row.getVector())) continue;
+                        if (row.getBlock().getType() == row.getNewBlockData().getMaterial()) {
+                            ignore.add(row.getVector());
+                        }
+                    }
+                    int count = 0;
+                    for (Vec3i vec : cuboid.enumerate()) {
+                        if (ignore.contains(vec)) continue;
+                        Block block = vec.toBlock(world);
+                        if (block.isEmpty()) continue;
+                        plugin.store(new SQLAction()
+                                     .setNow().setActionType(SQLAction.Type.BLOCK_FAKE)
+                                     .setLocation(block)
+                                     .setOldState(Material.AIR.createBlockData())
+                                     .setNewState(block)
+                                     .setActorTypeName("fake"));
+                        count += 1;
+                    }
+                    player.sendMessage(count + " fake blocks stored!");
+                });
+        player.sendMessage("Searching...");
         return true;
     }
 }

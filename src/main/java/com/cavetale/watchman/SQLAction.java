@@ -81,6 +81,7 @@ public final class SQLAction {
         BLOCK_FORM("form", Category.BLOCK),
         BLOCK_SHEAR("shear", Category.BLOCK),
         BLOCK_DESTROY("destroy", Category.BLOCK),
+        BLOCK_FAKE("fake", Category.BLOCK),
         BUCKET_EMPTY("bucket", Category.BLOCK),
         BUCKET_FILL("debucket", Category.BLOCK),
         BLOCK_EXPLODE("explode", Category.BLOCK),
@@ -553,5 +554,11 @@ public final class SQLAction {
 
     public Vec3i getVector() {
         return new Vec3i(x, y, z);
+    }
+
+    public Block getBlock() {
+        World bw = Bukkit.getWorld(world);
+        if (bw == null) return null;
+        return bw.getBlockAt(x, y, z);
     }
 }
