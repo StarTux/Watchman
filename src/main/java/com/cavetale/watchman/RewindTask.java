@@ -16,6 +16,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 @RequiredArgsConstructor
 public final class RewindTask extends BukkitRunnable {
@@ -28,6 +29,7 @@ public final class RewindTask extends BukkitRunnable {
     private final Set<Flag> flags;
     private final Location moveFrom;
     private final Location moveTo;
+    private final Location moveAnchor;
     private int actionIndex = 0;
     private World world;
 
@@ -108,13 +110,43 @@ public final class RewindTask extends BukkitRunnable {
     }
 
     private Location getMoveLocation() {
+        if (moveFrom == null || moveTo == null) return player.getLocation();
         double progress = (double) actionIndex / (double) actions.size();
         progress = Math.max(0, Math.min(1, progress));
         if (flags.contains(Flag.REVERSE)) progress = 1.0 - progress;
         double ssergorp = 1.0 - progress;
-        double x = moveFrom.getX() * ssergorp + moveTo.getX() * progress;
+        final double x;
+        final double z;
+        if (moveAnchor != null) {
+            Vector vecFrom = moveFrom.toVector().subtract(moveAnchor.toVector()).setY(0);
+            Vector vecTo = moveTo.toVector().subtract(moveAnchor.toVector()).setY(0);
+            double lengthFrom = vecFrom.length();
+            double lengthTo = vecTo.length();
+            vecFrom = vecFrom.normalize();
+            vecTo = vecTo.normalize();
+            double angleFrom = Math.atan2(vecFrom.getZ(), vecFrom.getX());
+            double angleTo = Math.atan2(vecTo.getZ(), vecTo.getX());
+            double distance = Math.abs(angleFrom - angleTo);
+            double angleTo2 = angleTo + Math.PI * 2.0;
+            double distance2 = Math.abs(angleFrom - angleTo2);
+            double angleTo3 = angleTo - Math.PI * 2.0;
+            double distance3 = Math.abs(angleFrom - angleTo3);
+            if (distance2 < distance && distance2 < distance3) {
+                angleTo = angleTo2;
+            } else if (distance3 < distance && distance3 < distance2) {
+                angleTo = angleTo3;
+            }
+            double angle = angleFrom * ssergorp + angleTo * progress;
+            double length = lengthFrom * ssergorp + lengthTo * progress;
+            double dx = Math.cos(angle) * length;
+            double dz = Math.sin(angle) * length;
+            x = moveAnchor.getX() + dx;
+            z = moveAnchor.getZ() + dz;
+        } else {
+            x = moveFrom.getX() * ssergorp + moveTo.getX() * progress;
+            z = moveFrom.getZ() * ssergorp + moveTo.getZ() * progress;
+        }
         double y = moveFrom.getY() * ssergorp + moveTo.getY() * progress;
-        double z = moveFrom.getZ() * ssergorp + moveTo.getZ() * progress;
         float pitch = moveFrom.getPitch() * (float) ssergorp + moveTo.getPitch() * (float) progress;
         float yaw1 = moveFrom.getYaw();
         float yaw2 = moveTo.getYaw();
