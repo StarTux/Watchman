@@ -504,6 +504,7 @@ public final class WatchmanCommand implements TabExecutor {
                                            + " " + ChatColor.WHITE + name);
                         total += 1;
                     }
+                    resultSet.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
