@@ -38,7 +38,8 @@ public final class RewindTask extends BukkitRunnable {
         NO_HEADS,
         NO_TNT,
         REVERSE,
-        MOVE;
+        MOVE,
+        AIR;
     }
 
     public void start() {
@@ -81,12 +82,16 @@ public final class RewindTask extends BukkitRunnable {
             if (done.contains(vector)) continue;
             done.add(vector);
             Block block = vector.toBlock(world);
-            BlockData blockData = row.getOldBlockData();
-            if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
-                blockData = null;
+            if (flags.contains(Flag.AIR)) {
+                player.sendBlockChange(block.getLocation(), Material.AIR.createBlockData());
+            } else {
+                BlockData blockData = row.getOldBlockData();
+                if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
+                    blockData = null;
+                }
+                if (blockData == null) blockData = Material.AIR.createBlockData();
+                player.sendBlockChange(block.getLocation(), blockData);
             }
-            if (blockData == null) blockData = Material.AIR.createBlockData();
-            player.sendBlockChange(block.getLocation(), blockData);
         }
     }
 
