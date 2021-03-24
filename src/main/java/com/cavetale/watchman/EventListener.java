@@ -187,9 +187,11 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        if (player.hasPermission("watchman.privacy.command")) return;
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.COMMAND)
-                     .setActorPlayer(event.getPlayer())
+                     .setActorPlayer(player)
                      .setLocation(event.getPlayer().getLocation())
                      .setNewState(event.getMessage()));
     }
@@ -197,6 +199,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
+        if (player.hasPermission("watchman.privacy.chat")) return;
         Location location = player.getLocation();
         String message = event.getMessage();
         Bukkit.getScheduler().runTask(plugin, () -> {

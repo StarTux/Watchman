@@ -33,14 +33,22 @@ commands:
       /wm fake - Add missing blocks for a nice rewind
 permissions:
   watchman.watchman:
-    description: use /watchman
+    description: Use /watchman
     default: op
   watchman.tool:
-    description: use /watchman tool
+    description: Use /watchman tool
     default: op
   watchman.rollback:
-    description: use /watchman rollback
+    description: Use /watchman rollback
     default: op
   watchman.lookup:
-    description: use /watchman lookup
+    description: Use /watchman lookup
     default: op
+
+  watchman.privacy.command:
+    description: Commands are not recorded
+    default: false
+
+  watchman.privacy.chat:
+    description: Chat is not recorded
+    default: false
