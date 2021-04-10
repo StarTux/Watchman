@@ -132,6 +132,18 @@ public final class WatchmanCommand implements TabExecutor {
                     case "world": case "w":
                         meta.worldwide = true;
                         break;
+                    case "worldedit": case "we":
+                        if (player == null) {
+                            sender.sendMessage("[watchman:wm] Player expected!");
+                            return true;
+                        }
+                        meta.worldedit = true;
+                        meta.selection = WorldEdit.getSelection(player);
+                        if (meta.selection == null) {
+                            player.sendMessage(ChatColor.RED + "WorldEdit selection required!");
+                            return true;
+                        }
+                        break;
                     default:
                         try {
                             meta.radius = Integer.parseInt(toks[1]);
@@ -169,7 +181,12 @@ public final class WatchmanCommand implements TabExecutor {
                     return true;
                 }
             }
-            if (!meta.global) {
+            if (meta.worldedit) {
+                search.eq("world", meta.world);
+                search.between("x", meta.selection.ax, meta.selection.bx);
+                search.between("z", meta.selection.az, meta.selection.bz);
+                search.between("y", meta.selection.ay, meta.selection.by);
+            } else if (!meta.global) {
                 search.eq("world", meta.world);
                 if (!meta.worldwide) {
                     search.gt("x", meta.cx - meta.radius);
@@ -246,6 +263,46 @@ public final class WatchmanCommand implements TabExecutor {
                 }
             }
             sender.sendMessage("Successfully rolled back " + count + " actions");
+            return true;
+        }
+        case "delete": {
+            if (player != null && !player.hasPermission("watchman.delete")) {
+                player.sendMessage(ChatColor.RED + "You don't have permission");
+                return true;
+            }
+            if (args.length != 1 && args.length != 2) return false;
+            List<SQLAction> actions;
+            if (player != null) {
+                if (!player.hasMetadata(Meta.LOOKUP)) {
+                    player.sendMessage(ChatColor.RED + "Make a lookup first.");
+                    return true;
+                }
+                actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
+            } else {
+                if (consoleSearch == null) {
+                    plugin.getLogger().info("No records available");
+                    return true;
+                }
+                actions = consoleSearch;
+            }
+            if (args.length == 2) {
+                int index;
+                try {
+                    index = Integer.parseInt(args[1]);
+                } catch (NumberFormatException nfe) {
+                    index = -1;
+                }
+                if (index < 0 || index >= actions.size()) {
+                    sender.sendMessage(ChatColor.RED + "Invalid lookup index " + args[1]);
+                    return true;
+                }
+                actions = Arrays.asList(actions.get(index));
+                sender.sendMessage(ChatColor.YELLOW + "Attempting to delete action with id " + index + "...");
+            } else {
+                sender.sendMessage(ChatColor.YELLOW + "Attempting to delete " + actions.size() + " actions...");
+            }
+            int count = plugin.database.delete(actions);
+            sender.sendMessage("Successfully deleted " + count + " actions");
             return true;
         }
         case "clear":
@@ -356,7 +413,16 @@ public final class WatchmanCommand implements TabExecutor {
             center = null;
             player.sendMessage("positions reset");
             return true;
-        case "rewind": return rewindCommand(player, Arrays.copyOfRange(args, 1, args.length));
+        case "rewind":
+            if (player == null) {
+                sender.sendMessage("[watchman:rewind] player expected");
+                return true;
+            }
+            if (!player.hasPermission("watchman.rewind")) {
+                player.sendMessage(ChatColor.RED + "You don't have permission!");
+                return true;
+            }
+            return rewindCommand(player, Arrays.copyOfRange(args, 1, args.length));
         case "fake": return fakeCommand(player, Arrays.copyOfRange(args, 1, args.length));
         default:
             break;
@@ -380,7 +446,7 @@ public final class WatchmanCommand implements TabExecutor {
                     int num = Integer.parseInt(arg.split(":", 2)[1]);
                     return matchTab(arg, Arrays.asList(l + ":" + num, l + ":" + (num * 10), l + ":global", l + ":world"));
                 } catch (NumberFormatException nfe) { }
-                return matchTab(arg, Arrays.asList(l + ":" + 8, l + ":global", l + ":world"));
+                return matchTab(arg, Arrays.asList(l + ":" + 8, l + ":global", l + ":world", l + ":we", l + ":worldedit"));
             }
             return matchTab(arg, Arrays.asList("player:", "action:", "world:", "center:", "radius:", "old:", "new:", "time:"));
         }
@@ -420,11 +486,6 @@ public final class WatchmanCommand implements TabExecutor {
     }
 
     boolean rewindCommand(Player player, String[] args) {
-        Cuboid cuboid = WorldEdit.getSelection(player);
-        if (cuboid == null) {
-            player.sendMessage(ChatColor.RED + "No selection!");
-            return true;
-        }
         final int duration;
         if (args.length >= 1) {
             try {
@@ -449,17 +510,34 @@ public final class WatchmanCommand implements TabExecutor {
             }
             flags.add(flag);
         }
-        SQLTable<SQLAction>.Finder search = plugin.database.find(SQLAction.class);
-        search.eq("world", worldName);
-        search.gte("x", cuboid.ax);
-        search.gte("y", cuboid.ay);
-        search.gte("z", cuboid.az);
-        search.lte("x", cuboid.bx);
-        search.lte("y", cuboid.by);
-        search.lte("z", cuboid.bz);
-        search.in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK));
-        search.orderByAscending("id");
-        search.findListAsync(ls -> rewindCallback(player, ls, duration, cuboid, flags));
+        Cuboid cuboid;
+        if (flags.contains(RewindTask.Flag.LOOKUP)) {
+            if (!player.hasMetadata(Meta.LOOKUP) || !player.hasMetadata(Meta.LOOKUP_META)) {
+                player.sendMessage(ChatColor.RED + "Make a lookup first.");
+                return true;
+            }
+            LookupMeta meta = (LookupMeta) player.getMetadata(Meta.LOOKUP_META).get(0).value();
+            List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
+            cuboid = meta.selection != null ? meta.selection : Cuboid.ZERO;
+            rewindCallback(player, actions, duration, cuboid, flags);
+        } else {
+            cuboid = WorldEdit.getSelection(player);
+            if (cuboid == null) {
+                player.sendMessage(ChatColor.RED + "No selection!");
+                return true;
+            }
+            SQLTable<SQLAction>.Finder search = plugin.database.find(SQLAction.class);
+            search.eq("world", worldName);
+            search.gte("x", cuboid.ax);
+            search.gte("y", cuboid.ay);
+            search.gte("z", cuboid.az);
+            search.lte("x", cuboid.bx);
+            search.lte("y", cuboid.by);
+            search.lte("z", cuboid.bz);
+            search.in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK));
+            search.orderByAscending("id");
+            search.findListAsync(ls -> rewindCallback(player, ls, duration, cuboid, flags));
+        }
         player.sendMessage("Preparing rewind of " + cuboid + " within " + duration + "s...");
         return true;
     }

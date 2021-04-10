@@ -15,8 +15,10 @@ final class LookupMeta {
     SQLAction.Type action = null;
     boolean global;
     boolean worldwide;
+    boolean worldedit;
     int cx;
     int cz;
+    Cuboid selection; // set when worldedit=true
     int radius;
     String oldType;
     String newType;

@@ -15,7 +15,6 @@ commands:
     usage: |-
       Usage:
       /wm tool - Toggle block logging tool
-      /wm rollback [id] - Rollback found records
       /wm clear - Clear your search
       /wm page PAGE - View search page
       /wm info ID - Detailed search result info
@@ -28,6 +27,8 @@ commands:
         (r)adius:RAD|world|global - Search radius
         (t)time:SECONDS - Limit time
         (w)orld:WORLD - World name
+      /wm rollback [id] - Rollback looked up records
+      /wm delete - Delete looked up records
       /wm rank - Rank players by actions in WE selection
       /wm rewind [seconds] [flags...] - Rewind WE selection
       /wm fake - Add missing blocks for a nice rewind
@@ -43,6 +44,12 @@ permissions:
     default: op
   watchman.lookup:
     description: Use /watchman lookup
+    default: op
+  watchman.rewind:
+    description: Use /watchman rewind
+    default: op
+  watchman.delete:
+    description: Use /watchman delete
     default: op
 
   watchman.privacy.command:

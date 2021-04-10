@@ -34,6 +34,7 @@ public final class RewindTask extends BukkitRunnable {
     private World world;
 
     public enum Flag {
+        LOOKUP, // Use results from lookup
         NO_SNOW,
         NO_HEADS,
         NO_TNT,
