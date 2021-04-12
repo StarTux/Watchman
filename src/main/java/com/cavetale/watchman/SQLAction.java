@@ -496,7 +496,7 @@ public final class SQLAction {
         } else if (actorType.equals("nature")) {
             cb.append("nature").color(ChatColor.GREEN);
         } else if (actorType.equals("unknown")) {
-            cb.append("red").color(ChatColor.RED);
+            cb.append("unknown").color(ChatColor.RED);
         } else {
             lore = TextComponent
                 .fromLegacyText("Type: " + actorType + "\n" + "UUID: " + actorId);
