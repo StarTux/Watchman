@@ -20,6 +20,7 @@ import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -305,7 +306,7 @@ public final class EventListener implements Listener {
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getNewState().getBlockData());
         if (otherHalf != null) {
             plugin.store(new SQLAction()
-                         .setNow().setActionType(SQLAction.Type.BLOCK_CHANGE)
+                         .setNow().setActionType(SQLAction.Type.BLOCK_GROW)
                          .setActorTypeName("nature")
                          .setOldState(otherHalf)
                          .setNewState(Blocks.toOtherHalf(event.getNewState().getBlockData())));
@@ -329,6 +330,16 @@ public final class EventListener implements Listener {
         plugin.store(new SQLAction()
                      .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
                      .setActorEntity(event.getEntity())
+                     .setOldState(event.getBlock())
+                     .setNewState(event.getNewState()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onBlockSpread(BlockSpreadEvent event) {
+        if (!plugin.eventBlockSpread) return;
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
+                     .setActorTypeName("nature")
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
     }

@@ -23,6 +23,7 @@ public final class WatchmanPlugin extends JavaPlugin {
     protected long deleteActionsAfter = 10L;
     protected boolean eventBlockGrow;
     protected boolean eventBlockForm;
+    protected boolean eventBlockSpread;
     protected boolean eventEntityBlockForm;
 
     @Override
@@ -53,6 +54,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         deleteActionsAfter = getConfig().getLong("DeleteActionsAfter", 10L);
         eventBlockGrow = getConfig().getBoolean("Events.BlockGrow");
         eventBlockForm = getConfig().getBoolean("Events.BlockForm");
+        eventBlockSpread = getConfig().getBoolean("Events.BlockSpread");
         eventEntityBlockForm = getConfig().getBoolean("Events.EntityBlockForm");
     }
 

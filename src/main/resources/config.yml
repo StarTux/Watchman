@@ -3,4 +3,5 @@ DeleteActionsAfter: 10 # days
 Events:
   BlockGrow: false
   BlockForm: false
+  BlockSpread: false
   EntityBlockForm: false
