@@ -371,10 +371,8 @@ public final class SQLAction {
 
     boolean rollback() {
         Type type = getType();
-        switch (type) {
-        case BLOCK_BREAK:
-        case BLOCK_EXPLODE:
-        case BLOCK_PLACE:
+        switch (type.category) {
+        case BLOCK:
             World bworld = Bukkit.getWorld(world);
             if (bworld == null) return false;
             Block block = bworld.getBlockAt(x, y, z);
@@ -399,6 +397,9 @@ public final class SQLAction {
                 }
             }
             return true;
+        case CHAT: case INVENTORY: case PLAYER:
+            return false;
+        case ENTITY:
         default:
             WatchmanPlugin.getInstance().getLogger().warning("Unable to rollback type " + type);
             return false;
