@@ -74,6 +74,7 @@ public final class SQLAction {
     public enum Type {
         PLAYER_JOIN("join", Category.PLAYER),
         PLAYER_QUIT("quit", Category.PLAYER),
+        PLAYER_DEATH("death", Category.PLAYER),
         BLOCK_BREAK("break", Category.BLOCK),
         BLOCK_PLACE("place", Category.BLOCK),
         BLOCK_CHANGE("change", Category.BLOCK),

@@ -26,6 +26,7 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -130,6 +131,13 @@ public final class EventListener implements Listener {
                      .setOldState(event.getEntity()));
     }
 
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onPlayerDeath(PlayerDeathEvent event) {
+        plugin.store(new SQLAction()
+                     .setNow().setActionType(SQLAction.Type.PLAYER_DEATH)
+                     .setActorPlayer(event.getEntity())
+                     .setLocation(event.getEntity().getLocation()));
+    }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     void onPlayerJoin(PlayerJoinEvent event) {
