@@ -20,18 +20,20 @@ commands:
       /wm info ID - Detailed search result info
       /wm lookup ARGS... - Search for records
         (a)ction:ACTION - Action type
-        (c)enter:X,Y - Center location
-        (n)ew:TYPE - Placed block
-        (o)ld:TYPE - Broken block or killed entity
         (p)layer:NAME - Player search
         (r)adius:RAD|world|global - Search radius
-        (t)time:SECONDS - Limit time
+        (t)time:XdXhXmXs - Limit time (d, h, m, s)
+        (c)enter:X,Y - Center location
+        (o)ld:TYPE - Broken block or killed entity
+        (n)ew:TYPE - Placed block
         (w)orld:WORLD - World name
       /wm rollback [id] - Rollback looked up records
       /wm delete - Delete looked up records
       /wm rank - Rank players by actions in WE selection
       /wm rewind [seconds] [flags...] - Rewind WE selection
       /wm fake - Add missing blocks for a nice rewind
+      /wm reload - Reload configuration
+      /wm expire - Delete expired logs
 permissions:
   watchman.watchman:
     description: Use /watchman

@@ -22,5 +22,5 @@ final class LookupMeta {
     int radius;
     String oldType;
     String newType;
-    Long after = null;
+    long seconds = 0L;
 }

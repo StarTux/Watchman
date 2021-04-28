@@ -1,6 +1,7 @@
 package com.cavetale.watchman;
 
 import com.winthier.generic_events.GenericEvents;
+import com.winthier.playercache.PlayerCache;
 import com.winthier.sql.SQLTable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,6 +113,7 @@ public final class WatchmanCommand implements TabExecutor {
                     break;
                 case "world": case "w":
                     meta.world = toks[1];
+                    meta.worldwide = true;
                     break;
                 case "center": case "c":
                     if (true) {
@@ -171,14 +173,14 @@ public final class WatchmanCommand implements TabExecutor {
                     if (true) {
                         long seconds;
                         try {
-                            seconds = Long.parseLong(toks[1]);
-                        } catch (NumberFormatException nfe) {
-                            sender.sendMessage("Seconds expected, got: " + toks[1]);
+                            seconds = Time.parseSeconds(toks[1]);
+                        } catch (IllegalArgumentException nfe) {
+                            sender.sendMessage("Time expected, got: " + toks[1]);
                             return true;
                         }
+                        meta.seconds = seconds;
                         Date time = new Date(System.currentTimeMillis() - (seconds * 1000));
                         search.gt("time", time);
-                        meta.after = time.getTime();
                     }
                     break;
                 default:
@@ -429,6 +431,11 @@ public final class WatchmanCommand implements TabExecutor {
             }
             return rewindCommand(player, Arrays.copyOfRange(args, 1, args.length));
         case "fake": return fakeCommand(player, Arrays.copyOfRange(args, 1, args.length));
+        case "expire": {
+            plugin.deleteExpiredLogs();
+            sender.sendMessage("Deleting expired logs. See console");
+            return true;
+        }
         default:
             break;
         }
@@ -452,6 +459,26 @@ public final class WatchmanCommand implements TabExecutor {
                     return matchTab(arg, Arrays.asList(l + ":" + num, l + ":" + (num * 10), l + ":global", l + ":world"));
                 } catch (NumberFormatException nfe) { }
                 return matchTab(arg, Arrays.asList(l + ":" + 8, l + ":global", l + ":world", l + ":we", l + ":worldedit"));
+            }
+            if (arg.startsWith("time:") || arg.startsWith("t:")) {
+                try {
+                    long seconds = Time.parseSeconds(arg.split(":", 2)[1]);
+                    return Arrays.asList(arg.split(":", 2)[0] + ":" + Time.formatSeconds(seconds));
+                } catch (IllegalArgumentException nfe) {
+                    return Collections.emptyList();
+                }
+            }
+            if (arg.startsWith("player:") || arg.startsWith("p:")) {
+                String[] toks = arg.split(":", 2);
+                String pref = toks[0] + ":";
+                String name = toks[1];
+                String lower = name.toLowerCase();
+                return PlayerCache.allCached().stream()
+                    .map(PlayerCache::getName)
+                    .filter(s -> s.toLowerCase().startsWith(lower))
+                    .map(s -> pref + s)
+                    .limit(128)
+                    .collect(Collectors.toList());
             }
             return matchTab(arg, Arrays.asList("player:", "action:", "world:", "center:", "radius:", "old:", "new:", "time:"));
         }

@@ -116,7 +116,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         if (meta.action != null) sb.append(" action=").append(meta.action.human);
         if (meta.oldType != null) sb.append(" old=").append(meta.oldType);
         if (meta.newType != null) sb.append(" new=").append(meta.newType);
-        if (meta.after != null) sb.append(" after=").append(new Date(meta.after));
+        if (meta.seconds > 0L) sb.append(" time=").append(Time.formatSeconds(meta.seconds));
         player.sendMessage("Param: " + ChatColor.GRAY + sb.toString());
         int fromIndex = page * pageLen;
         int toIndex = fromIndex + pageLen - 1;
