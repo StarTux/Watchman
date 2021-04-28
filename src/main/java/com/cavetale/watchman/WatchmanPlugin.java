@@ -10,6 +10,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -34,10 +35,10 @@ public final class WatchmanPlugin extends JavaPlugin {
         database = new SQLDatabase(this);
         database.registerTables(SQLAction.class);
         database.createAllTables();
-        deleteExpiredLogs();
         watchmanCommand.enable();
         eventListener.enable();
-        getServer().getScheduler().runTaskTimer(this, this::drainStorage, 20, 20);
+        Bukkit.getScheduler().runTaskTimer(this, this::drainStorage, 20L, 20L);
+        Bukkit.getScheduler().runTaskTimer(this, this::deleteExpiredLogs, 0L, 20L * 60L * 60L);
     }
 
     @Override
@@ -66,13 +67,14 @@ public final class WatchmanPlugin extends JavaPlugin {
 
     void deleteExpiredLogs() {
         long days = deleteActionsAfter;
-        Date then = new Date(System.currentTimeMillis()
-                             - days * 24L * 60L * 60L * 1000L);
+        long now = System.currentTimeMillis();
+        Date then = new Date(now - days * 24L * 60L * 60L * 1000L);
         getLogger().info("Deleting actions older than " + days + " days (" + then + ")");
         database.find(SQLAction.class)
             .lt("time", then)
             .deleteAsync(count -> {
-                    getLogger().info("Deleted " + count + " old actions");
+                    long stop = (System.currentTimeMillis() - now) / 1000L;
+                    getLogger().info("Deleted " + count + " old actions in " + stop + "s");
                 });
     }
 

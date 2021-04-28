@@ -43,6 +43,11 @@ public final class WatchmanCommand implements TabExecutor {
         final Player player = sender instanceof Player ? (Player) sender : null;
         if (args.length == 0) return false;
         switch (args[0]) {
+        case "reload": {
+            plugin.loadConf();
+            sender.sendMessage("Configuration reloaded");
+            return true;
+        }
         case "tool": {
             if (player == null) {
                 sender.sendMessage("Player expected");
