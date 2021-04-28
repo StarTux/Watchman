@@ -2,6 +2,7 @@ package com.cavetale.watchman;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Keyed;
 
 final class LookupMeta {
     @RequiredArgsConstructor static final class Vec {
@@ -23,4 +24,5 @@ final class LookupMeta {
     String oldType;
     String newType;
     long seconds = 0L;
+    Keyed type;
 }

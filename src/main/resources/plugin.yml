@@ -21,11 +21,12 @@ commands:
       /wm lookup ARGS... - Search for records
         (a)ction:ACTION - Action type
         (p)layer:NAME - Player search
+        (t)ime:XdXhXmXs - Limit time (d, h, m, s)
+        (b)lock:block - The block type
+        (i)tem:item - The item type
+        (e)ntity:entity - The entity type
         (r)adius:RAD|world|global - Search radius
-        (t)time:XdXhXmXs - Limit time (d, h, m, s)
         (c)enter:X,Y - Center location
-        (o)ld:TYPE - Broken block or killed entity
-        (n)ew:TYPE - Placed block
         (w)orld:WORLD - World name
       /wm rollback [id] - Rollback looked up records
       /wm delete - Delete looked up records

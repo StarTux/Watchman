@@ -35,6 +35,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -44,6 +45,7 @@ import org.bukkit.inventory.ItemStack;
                   @Index(name = "id_time", columnList = "time"),
                   @Index(name = "id_world", columnList = "world"),
                   @Index(name = "id_action", columnList = "action"),
+                  @Index(name = "id_type", columnList = "type"),
                   @Index(name = "id_xz", columnList = "x,z")})
 public final class SQLAction {
     private static final int MAX_TAG_LENGTH = 8192;
@@ -51,6 +53,7 @@ public final class SQLAction {
     // Action
     @Column(nullable = false) private Date time;
     @Column(nullable = false, length = 31) private String action; // enum Type, e.g. block_break
+    @Column(nullable = true, length = 255) private String type; // Material or EntityType
     // Actor
     @Column(nullable = true) private UUID actorId; // Player unique id
     @Column(nullable = false, length = 63) private String actorType; // Entity type
@@ -131,7 +134,7 @@ public final class SQLAction {
         }
     }
 
-    public Type getType() {
+    public Type getActionType() {
         if (action == null) return null;
         try {
             return Type.valueOf(action.toUpperCase());
@@ -141,13 +144,18 @@ public final class SQLAction {
         }
     }
 
-    public SQLAction setActionType(Type type) {
-        action = type.name().toLowerCase();
+    public SQLAction setActionType(Type actionType) {
+        action = actionType.name().toLowerCase();
         return this;
     }
 
     public SQLAction setNow() {
         time = new Date();
+        return this;
+    }
+
+    public SQLAction time(long now) {
+        time = new Date(now);
         return this;
     }
 
@@ -302,7 +310,7 @@ public final class SQLAction {
     }
 
     public SQLAction setOldState(ItemStack item) {
-        oldType = item.getType().getKey().toString();
+        oldType = item.getType().getKey().getKey();
         Map<String, Object> tag = Dirty.getItemTag(item);
         if (tag != null) {
             oldTag = Json.serialize(tag);
@@ -313,7 +321,7 @@ public final class SQLAction {
     }
 
     public SQLAction setNewState(ItemStack item) {
-        newType = item.getType().getKey().toString();
+        newType = item.getType().getKey().getKey();
         Map<String, Object> tag = Dirty.getItemTag(item);
         if (tag != null) {
             newTag = Json.serialize(tag);
@@ -345,6 +353,16 @@ public final class SQLAction {
         return this;
     }
 
+    public SQLAction setMaterial(Material material) {
+        this.type = material.getKey().getKey();
+        return this;
+    }
+
+    public SQLAction setEntityType(EntityType entityType) {
+        this.type = entityType.getKey().getKey();
+        return this;
+    }
+
     public BlockData getOldBlockData() {
         if (oldType == null) {
             return Material.AIR.createBlockData();
@@ -371,8 +389,8 @@ public final class SQLAction {
     }
 
     boolean rollback() {
-        Type type = getType();
-        switch (type.category) {
+        Type actionType = getActionType();
+        switch (actionType.category) {
         case BLOCK:
             World bworld = Bukkit.getWorld(world);
             if (bworld == null) return false;
@@ -402,7 +420,7 @@ public final class SQLAction {
             return false;
         case ENTITY:
         default:
-            WatchmanPlugin.getInstance().getLogger().warning("Unable to rollback type " + type);
+            WatchmanPlugin.getInstance().getLogger().warning("Unable to rollback type " + actionType);
             return false;
         }
     }
@@ -440,7 +458,7 @@ public final class SQLAction {
         sb.append(y);
         sb.append(",");
         sb.append(z);
-        Type type = getType();
+        Type actionType = getActionType();
         final boolean showOld = oldType != null || oldTag != null;
         final boolean showNew = newType != null || newTag != null;
         if (showOld) {
@@ -509,11 +527,14 @@ public final class SQLAction {
             cb.insertion("" + actorId);
         }
         cb.append(" ");
-        Type type = getType();
-        if (type == null) {
+        Type actionType = getActionType();
+        if (actionType == null) {
             cb.append(action).color(ChatColor.DARK_RED);
         } else {
-            cb.append(type.human).color(ChatColor.YELLOW);
+            cb.append(actionType.human).color(ChatColor.YELLOW);
+        }
+        if (type != null) {
+            cb.append(" ").append(type).color(ChatColor.YELLOW);
         }
         if (meta.location == null) {
             cb.append(" ");

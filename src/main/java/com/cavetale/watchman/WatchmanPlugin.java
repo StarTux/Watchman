@@ -114,6 +114,7 @@ public final class WatchmanPlugin extends JavaPlugin {
                 .append(",").append(meta.cz);
         }
         if (meta.action != null) sb.append(" action=").append(meta.action.human);
+        if (meta.type != null) sb.append(" type=").append(meta.type.getKey().toString());
         if (meta.oldType != null) sb.append(" old=").append(meta.oldType);
         if (meta.newType != null) sb.append(" new=").append(meta.newType);
         if (meta.seconds > 0L) sb.append(" time=").append(Time.formatSeconds(meta.seconds));

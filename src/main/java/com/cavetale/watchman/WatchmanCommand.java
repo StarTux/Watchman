@@ -14,15 +14,20 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 
@@ -161,14 +166,49 @@ public final class WatchmanCommand implements TabExecutor {
                         break;
                     }
                     break;
-                case "old": case "o":
-                    search.eq("oldType", toks[1]);
-                    meta.oldType = toks[1];
+                case "block": case "b":
+                case "item": case "i": {
+                    Set<Material> mats;
+                    String string = toks[1];
+                    if (string.startsWith("#")) {
+                        Tag<Material> tag;
+                        String registry = toks[0].startsWith("b") ? Tag.REGISTRY_BLOCKS : Tag.REGISTRY_ITEMS;
+                        tag = Bukkit.getTag(registry, NamespacedKey.minecraft(string.substring(1).toLowerCase()), Material.class);
+                        if (tag == null) {
+                            sender.sendMessage("Invalid material tag: " + string);
+                            return true;
+                        }
+                        meta.type = tag;
+                        mats = tag.getValues();
+                    } else {
+                        Material material;
+                        try {
+                            material = Material.valueOf(string.toUpperCase());
+                        } catch (IllegalArgumentException iae) {
+                            sender.sendMessage("Invalid material: " + string);
+                            return true;
+                        }
+                        meta.type = material;
+                        mats = EnumSet.of(material);
+                    }
+                    search.in("type", mats.stream().map(Material::getKey).map(NamespacedKey::getKey).collect(Collectors.toSet()));
                     break;
-                case "new": case "n":
-                    search.eq("newType", toks[1]);
-                    meta.newType = toks[1];
+                }
+                case "entity": case "e": {
+                    Set<EntityType> types;
+                    String string = toks[1];
+                    EntityType entityType;
+                    try {
+                        entityType = EntityType.valueOf(string.toUpperCase());
+                    } catch (IllegalArgumentException iae) {
+                        sender.sendMessage("Invalid entity type: " + string);
+                        return true;
+                    }
+                    meta.type = entityType;
+                    types = EnumSet.of(entityType);
+                    search.in("type", types.stream().map(EntityType::getKey).map(NamespacedKey::getKey).collect(Collectors.toSet()));
                     break;
+                }
                 case "time": case "t":
                     if (true) {
                         long seconds;
@@ -476,6 +516,46 @@ public final class WatchmanCommand implements TabExecutor {
                 return PlayerCache.allCached().stream()
                     .map(PlayerCache::getName)
                     .filter(s -> s.toLowerCase().startsWith(lower))
+                    .map(s -> pref + s)
+                    .limit(128)
+                    .collect(Collectors.toList());
+            }
+            if (arg.startsWith("block:") || arg.startsWith("b:")) {
+                String[] toks = arg.split(":", 2);
+                String pref = toks[0] + ":";
+                String name = toks[1];
+                String lower = name.toLowerCase();
+                return Stream.concat((StreamSupport.stream(Bukkit.getTags(Tag.REGISTRY_BLOCKS, Material.class).spliterator(), false)
+                                      .map(Tag::getKey).map(NamespacedKey::getKey).map(s -> "#" + s)),
+                                     (Stream.of(Material.values())
+                                      .map(Material::getKey).map(NamespacedKey::getKey)))
+                    .filter(s -> s.startsWith(lower))
+                    .map(s -> pref + s)
+                    .limit(128)
+                    .collect(Collectors.toList());
+            }
+            if (arg.startsWith("item:") || arg.startsWith("i:")) {
+                String[] toks = arg.split(":", 2);
+                String pref = toks[0] + ":";
+                String name = toks[1];
+                String lower = name.toLowerCase();
+                return Stream.concat((StreamSupport.stream(Bukkit.getTags(Tag.REGISTRY_ITEMS, Material.class).spliterator(), false)
+                                      .map(Tag::getKey).map(NamespacedKey::getKey).map(s -> "#" + s)),
+                                     (Stream.of(Material.values())
+                                      .map(Material::getKey).map(NamespacedKey::getKey)))
+                    .filter(s -> s.startsWith(lower))
+                    .map(s -> pref + s)
+                    .limit(128)
+                    .collect(Collectors.toList());
+            }
+            if (arg.startsWith("entity:") || arg.startsWith("e:")) {
+                String[] toks = arg.split(":", 2);
+                String pref = toks[0] + ":";
+                String name = toks[1];
+                String lower = name.toLowerCase();
+                return Stream.of(EntityType.values())
+                    .map(EntityType::getKey).map(NamespacedKey::getKey)
+                    .filter(s -> s.startsWith(lower))
                     .map(s -> pref + s)
                     .limit(128)
                     .collect(Collectors.toList());
