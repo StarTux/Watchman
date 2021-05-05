@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -236,12 +237,32 @@ public final class EventListener implements Listener {
         if (!(event.getPlayer() instanceof Player)) return;
         Player player = (Player) event.getPlayer();
         InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof BlockInventoryHolder)) return;
-        Block block = ((BlockInventoryHolder) holder).getBlock();
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(SQLAction.Type.INVENTORY_OPEN)
-                     .setActorPlayer(player)
-                     .setOldState(block));
+        if (holder instanceof BlockInventoryHolder) {
+            Block block = ((BlockInventoryHolder) holder).getBlock();
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.INVENTORY_OPEN)
+                         .setActorPlayer(player)
+                         .setOldState(block));
+        } else if (holder instanceof DoubleChest) {
+            DoubleChest doubleChest = (DoubleChest) holder;
+            long now = System.currentTimeMillis();
+            InventoryHolder left = doubleChest.getLeftSide();
+            if (left instanceof BlockInventoryHolder) {
+                Block block = ((BlockInventoryHolder) left).getBlock();
+                plugin.store(new SQLAction()
+                             .time(now).setActionType(SQLAction.Type.INVENTORY_OPEN)
+                             .setActorPlayer(player)
+                             .setOldState(block));
+            }
+            InventoryHolder right = doubleChest.getRightSide();
+            if (right instanceof BlockInventoryHolder) {
+                Block block = ((BlockInventoryHolder) right).getBlock();
+                plugin.store(new SQLAction()
+                             .time(now).setActionType(SQLAction.Type.INVENTORY_OPEN)
+                             .setActorPlayer(player)
+                             .setOldState(block));
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
