@@ -273,7 +273,9 @@ public final class EventListener implements Listener {
         player.removeMetadata(Meta.LOOKUP_META, plugin);
         plugin.database.find(SQLAction.class)
             .eq("world", world).eq("x", x).eq("y", y).eq("z", z)
-            .in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK))
+            .in("action", SQLAction.Type.inCategories(SQLAction.Type.Category.BLOCK,
+                                                      SQLAction.Type.Category.ENTITY,
+                                                      SQLAction.Type.Category.INVENTORY))
             .orderByDescending("id")
             .findListAsync((actions) -> {
                     if (!player.isValid()) return;

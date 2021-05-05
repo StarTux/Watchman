@@ -7,10 +7,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -129,6 +131,14 @@ public final class SQLAction {
         public static List<String> inCategory(Category category) {
             return Stream.of(Type.values())
                 .filter(t -> t.category == category)
+                .map(t -> t.key)
+                .collect(Collectors.toList());
+        }
+
+        public static List<String> inCategories(Category first, Category... others) {
+            Set<Category> set = EnumSet.of(first, others);
+            return Stream.of(Type.values())
+                .filter(t -> set.contains(t.category))
                 .map(t -> t.key)
                 .collect(Collectors.toList());
         }
