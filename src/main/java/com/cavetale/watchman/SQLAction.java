@@ -175,7 +175,7 @@ public final class SQLAction {
             return this;
         }
         actorId = player.getUniqueId();
-        actorType = player.getType().name().toLowerCase();
+        actorType = player.getType().getKey().getKey();
         actorName = player.getName();
         return this;
     }
@@ -187,14 +187,14 @@ public final class SQLAction {
         }
         if (entity instanceof Player) return setActorPlayer((Player) entity);
         actorId = entity.getUniqueId();
-        actorType = entity.getType().name().toLowerCase();
+        actorType = entity.getType().getKey().getKey();
         actorName = entity.getCustomName();
         return this;
     }
 
     public SQLAction setActorBlock(Block block) {
         actorType = "block";
-        setActorName(block.getType().name().toLowerCase());
+        setActorName(block != null ? block.getType().getKey().getKey() : "air");
         return this;
     }
 
@@ -277,7 +277,7 @@ public final class SQLAction {
         x = location.getBlockX();
         y = location.getBlockY();
         z = location.getBlockZ();
-        newType = entity.getType().name().toLowerCase();
+        newType = entity.getType().getKey().getKey();
         Map<String, Object> tag = Dirty.getEntityTag(entity);
         if (tag != null) {
             newTag = Json.serialize(tag);
@@ -293,7 +293,7 @@ public final class SQLAction {
         x = location.getBlockX();
         y = location.getBlockY();
         z = location.getBlockZ();
-        oldType = entity.getType().name().toLowerCase();
+        oldType = entity.getType().getKey().getKey();
         Map<String, Object> tag = Dirty.getEntityTag(entity);
         if (tag != null) {
             oldTag = Json.serialize(tag);
