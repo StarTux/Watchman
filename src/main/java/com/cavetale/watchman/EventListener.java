@@ -11,6 +11,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.DoubleChest;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,6 +25,9 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityDamageByBlockEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
@@ -132,12 +136,41 @@ public final class EventListener implements Listener {
     // For now, we only log player caused entity deaths.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     void onEntityDeath(EntityDeathEvent event) {
-        if (event.getEntity().getKiller() == null) return;
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(SQLAction.Type.ENTITY_KILL)
-                     .setEntityType(event.getEntity().getType())
-                     .setActorPlayer(event.getEntity().getKiller())
-                     .setOldState(event.getEntity()));
+        LivingEntity entity = event.getEntity();
+        if (entity.getKiller() != null) {
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.ENTITY_KILL)
+                         .setEntityType(entity.getType())
+                         .setActorPlayer(entity.getKiller())
+                         .setOldState(entity));
+            return;
+        }
+        EntityDamageEvent lastDamageCause = entity.getLastDamageCause();
+        if (lastDamageCause instanceof EntityDamageByEntityEvent) {
+            EntityDamageByEntityEvent edbee = (EntityDamageByEntityEvent) lastDamageCause;
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.ENTITY_KILL)
+                         .setEntityType(entity.getType())
+                         .setActorEntity(edbee.getDamager())
+                         .setOldState(entity));
+            return;
+        } else if (lastDamageCause instanceof EntityDamageByBlockEvent) {
+            EntityDamageByBlockEvent edbbe = (EntityDamageByBlockEvent) lastDamageCause;
+            plugin.store(new SQLAction()
+                         .setNow().setActionType(SQLAction.Type.ENTITY_KILL)
+                         .setEntityType(entity.getType())
+                         .setActorBlock(edbbe.getDamager())
+                         .setOldState(entity));
+            return;
+        } else if (lastDamageCause != null) {
+            SQLAction row = new SQLAction()
+                .setNow().setActionType(SQLAction.Type.ENTITY_KILL)
+                .setEntityType(entity.getType())
+                .setActorTypeName("unknown")
+                .setOldState(entity);
+            row.setActorName(lastDamageCause.getCause().name().toLowerCase());
+            plugin.store(row);
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
