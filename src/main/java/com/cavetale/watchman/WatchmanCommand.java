@@ -560,7 +560,8 @@ public final class WatchmanCommand implements TabExecutor {
                     .limit(128)
                     .collect(Collectors.toList());
             }
-            return matchTab(arg, Arrays.asList("player:", "action:", "world:", "center:", "radius:", "old:", "new:", "time:"));
+            return matchTab(arg, Arrays.asList("player:", "action:", "world:", "center:",
+                                               "radius:", "item:", "block:", "entity:", "time:"));
         }
         if (args.length == 2 && args[0].equals("page")) {
             List<SQLAction> actions;
