@@ -87,8 +87,11 @@ public final class WatchmanPlugin extends JavaPlugin {
      */
     void drainStorage() {
         if (storage.isEmpty()) return;
-        database.saveAsync(storage, null);
-        storage = new ArrayList<>();
+        for (SQLAction it : storage) {
+            it.sanitize();
+        }
+        database.insertAsync(storage, null);
+        storage.clear();
     }
 
     void showActionPage(Player player, List<SQLAction> actions, LookupMeta meta, int page) {

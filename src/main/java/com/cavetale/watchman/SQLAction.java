@@ -594,4 +594,13 @@ public final class SQLAction {
         if (bw == null) return null;
         return bw.getBlockAt(x, y, z);
     }
+
+    public void sanitize() {
+        if (oldTag != null && oldTag.length() > MAX_TAG_LENGTH) {
+            oldTag = oldTag.substring(0, MAX_TAG_LENGTH);
+        }
+        if (newTag != null && newTag.length() > MAX_TAG_LENGTH) {
+            newTag = newTag.substring(0, MAX_TAG_LENGTH);
+        }
+    }
 }
