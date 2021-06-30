@@ -91,7 +91,7 @@ public final class WatchmanPlugin extends JavaPlugin {
             it.sanitize();
         }
         database.insertAsync(storage, null);
-        storage.clear();
+        storage = new ArrayList<>();
     }
 
     void showActionPage(Player player, List<SQLAction> actions, LookupMeta meta, int page) {
