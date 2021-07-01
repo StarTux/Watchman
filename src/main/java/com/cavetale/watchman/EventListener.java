@@ -1,5 +1,6 @@
 package com.cavetale.watchman;
 
+import com.cavetale.core.event.block.PlayerBreakBlockEvent;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import io.papermc.paper.event.block.PlayerShearBlockEvent;
 import lombok.RequiredArgsConstructor;
@@ -464,5 +465,15 @@ public final class EventListener implements Listener {
                          .setOldState(otherHalf)
                          .setNewState(event.getBlock().getBlockData()));
         }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onPlayerBreakBlock(PlayerBreakBlockEvent event) {
+        plugin.store(new SQLAction().setNow()
+                     .setActionType(SQLAction.Type.BLOCK_BREAK)
+                     .setMaterial(event.getBlock().getType())
+                     .setActorPlayer(event.getPlayer())
+                     .setOldState(event.getBlock())
+                     .setNewState(Material.AIR));
     }
 }
