@@ -204,6 +204,10 @@ public final class WatchmanCommand implements TabExecutor {
                         sender.sendMessage("Invalid entity type: " + string);
                         return true;
                     }
+                    if (entityType == EntityType.UNKNOWN) {
+                        sender.sendMessage("Invalid entity type: " + string);
+                        return true;
+                    }
                     meta.type = entityType;
                     types = EnumSet.of(entityType);
                     search.in("type", types.stream().map(EntityType::getKey).map(NamespacedKey::getKey).collect(Collectors.toSet()));
@@ -554,7 +558,9 @@ public final class WatchmanCommand implements TabExecutor {
                 String name = toks[1];
                 String lower = name.toLowerCase();
                 return Stream.of(EntityType.values())
-                    .map(EntityType::getKey).map(NamespacedKey::getKey)
+                    .filter(e -> e != EntityType.UNKNOWN)
+                    .map(EntityType::getKey)
+                    .map(NamespacedKey::getKey)
                     .filter(s -> s.startsWith(lower))
                     .map(s -> pref + s)
                     .limit(128)
