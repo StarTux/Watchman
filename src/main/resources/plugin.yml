@@ -2,7 +2,7 @@ name: Watchman
 description: Player action logging tool
 author: StarTux
 version: 0.1
-api-version: 1.13
+api-version: 1.17
 website: http://cavetale.com
 main: com.cavetale.watchman.WatchmanPlugin
 depend: [Dirty, SQL, PlayerCache, Core]
