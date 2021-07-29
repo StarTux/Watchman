@@ -1,6 +1,5 @@
 package com.cavetale.watchman;
 
-import com.winthier.generic_events.GenericEvents;
 import com.winthier.playercache.PlayerCache;
 import com.winthier.sql.SQLTable;
 import java.util.ArrayList;
@@ -97,7 +96,7 @@ public final class WatchmanCommand implements TabExecutor {
                 switch (toks[0]) {
                 case "player": case "p":
                     if (true) {
-                        UUID uuid = GenericEvents.cachedPlayerUuid(toks[1]);
+                        UUID uuid = PlayerCache.uuidForName(toks[1]);
                         if (uuid == null) {
                             sender.sendMessage("Unknown player: " + toks[1]);
                             return true;

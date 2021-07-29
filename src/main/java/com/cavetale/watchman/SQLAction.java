@@ -2,7 +2,7 @@ package com.cavetale.watchman;
 
 import com.cavetale.core.util.Json;
 import com.cavetale.dirty.Dirty;
-import com.winthier.generic_events.GenericEvents;
+import com.winthier.playercache.PlayerCache;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -454,7 +454,7 @@ public final class SQLAction {
         }
         sb.append(" ");
         if (actorType.equals("player")) {
-            sb.append(GenericEvents.cachedPlayerName(actorId));
+            sb.append(PlayerCache.nameForUuid(actorId));
         } else {
             sb.append(actorType);
         }
@@ -516,7 +516,7 @@ public final class SQLAction {
         if (actorType == null) {
             cb.append("null").color(ChatColor.RED);
         } else if (actorType.equals("player")) {
-            String name = GenericEvents.cachedPlayerName(actorId);
+            String name = PlayerCache.nameForUuid(actorId);
             lore = TextComponent
                 .fromLegacyText("Name: " + name + "\n" + "UUID: " + actorId);
             cb.append(name).color(ChatColor.BLUE);
