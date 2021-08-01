@@ -20,6 +20,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -475,5 +476,15 @@ public final class EventListener implements Listener {
                      .setActorPlayer(event.getPlayer())
                      .setOldState(event.getBlock())
                      .setNewState(Material.AIR));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onBlockFromTo(BlockFromToEvent event) {
+        Block block = event.getToBlock();
+        SQLAction row = new SQLAction()
+            .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
+            .setActorTypeName("nature")
+            .setOldState(block);
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(row.setMaterial((block.getType()).setNewState(block))));
     }
 }
