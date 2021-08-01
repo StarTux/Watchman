@@ -485,6 +485,10 @@ public final class EventListener implements Listener {
             .setNow().setActionType(SQLAction.Type.BLOCK_FORM)
             .setActorTypeName("nature")
             .setOldState(block);
-        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(row.setMaterial((block.getType()).setNewState(block))));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+                row.setMaterial(block.getType())
+                    .setNewState(block);
+                plugin.store(row);
+            });
     }
 }
