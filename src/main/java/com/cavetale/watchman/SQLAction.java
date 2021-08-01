@@ -91,6 +91,7 @@ public final class SQLAction {
         BUCKET_EMPTY("bucket", Category.BLOCK),
         BUCKET_FILL("debucket", Category.BLOCK),
         BLOCK_EXPLODE("explode", Category.BLOCK),
+        BLOCK_WORLDEDIT("worldedit", Category.BLOCK),
         ENTITY_KILL("kill", Category.ENTITY),
         ITEM_DROP("drop", Category.INVENTORY),
         ITEM_PICKUP("pickup", Category.INVENTORY),

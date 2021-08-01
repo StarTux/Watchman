@@ -20,12 +20,14 @@ public final class WatchmanPlugin extends JavaPlugin {
     List<SQLAction> storage = new ArrayList<>();
     WatchmanCommand watchmanCommand = new WatchmanCommand(this);
     EventListener eventListener = new EventListener(this);
+    WorldEditListener worldEditListener = new WorldEditListener(this);
     private EntityHider entityHider = null;
     protected long deleteActionsAfter = 10L;
     protected boolean eventBlockGrow;
     protected boolean eventBlockForm;
     protected boolean eventBlockSpread;
     protected boolean eventEntityBlockForm;
+    protected boolean worldEdit;
 
     @Override
     public void onEnable() {
@@ -37,6 +39,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         database.createAllTables();
         watchmanCommand.enable();
         eventListener.enable();
+        worldEditListener.enable();
         Bukkit.getScheduler().runTaskTimer(this, this::drainStorage, 20L, 20L);
         Bukkit.getScheduler().runTaskTimer(this, this::deleteExpiredLogs, 0L, 20L * 60L * 60L);
     }
@@ -57,6 +60,8 @@ public final class WatchmanPlugin extends JavaPlugin {
         eventBlockForm = getConfig().getBoolean("Events.BlockForm");
         eventBlockSpread = getConfig().getBoolean("Events.BlockSpread");
         eventEntityBlockForm = getConfig().getBoolean("Events.EntityBlockForm");
+        worldEdit = getConfig().getBoolean("WorldEdit");
+        worldEditListener.disable();
     }
 
     void exit(Player player) {
