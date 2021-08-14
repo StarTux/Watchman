@@ -2,10 +2,20 @@ package com.cavetale.watchman;
 
 import static com.comphenix.protocol.PacketType.Play.Server.*;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.events.PacketAdapter;
+import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.events.PacketEvent;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Map;
-
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,22 +26,12 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.events.PacketEvent;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
-
 public final class EntityHider implements Listener {
     protected Table<Integer, Integer, Boolean> observerEntityMap = HashBasedTable.create();
 
     // Packets that update remote player entities
     private static final PacketType[] ENTITY_PACKETS = {
-        ENTITY_EQUIPMENT, BED, ANIMATION, NAMED_ENTITY_SPAWN,
+        ENTITY_EQUIPMENT, ANIMATION, NAMED_ENTITY_SPAWN,
         COLLECT, SPAWN_ENTITY, SPAWN_ENTITY_LIVING, SPAWN_ENTITY_PAINTING, SPAWN_ENTITY_EXPERIENCE_ORB,
         ENTITY_VELOCITY, REL_ENTITY_MOVE, ENTITY_LOOK, ENTITY_MOVE_LOOK, ENTITY_MOVE_LOOK,
         ENTITY_TELEPORT, ENTITY_HEAD_ROTATION, ENTITY_STATUS, ATTACH_ENTITY, ENTITY_METADATA,
@@ -253,7 +253,7 @@ public final class EntityHider implements Listener {
 
         if (visibleBefore) {
             PacketContainer destroyEntity = new PacketContainer(ENTITY_DESTROY);
-            destroyEntity.getIntegerArrays().write(0, new int[] {entity.getEntityId()});
+            destroyEntity.getSpecificModifier(IntList.class).write(0, new IntArrayList(entity.getEntityId()));
 
             // Make the entity disappear
             try {

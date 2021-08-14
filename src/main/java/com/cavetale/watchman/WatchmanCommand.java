@@ -665,7 +665,7 @@ public final class WatchmanCommand implements TabExecutor {
         Location loc2 = pos2 != null && pos2.getWorld().equals(player.getWorld()) ? pos2 : null;
         Location loc3 = center != null && center.getWorld().equals(player.getWorld()) ? center : null;
         int durationInTicks = duration * 20;
-        int blocksPerTick = actions.size() / durationInTicks;
+        int blocksPerTick = Math.max(1, actions.size() / durationInTicks);
         RewindTask task = new RewindTask(plugin, player, actions, 100L, blocksPerTick, cuboid, flags, loc1, loc2, loc3);
         task.start();
     }
