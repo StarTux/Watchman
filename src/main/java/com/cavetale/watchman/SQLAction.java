@@ -519,8 +519,9 @@ public final class SQLAction {
         StringBuilder sb = new StringBuilder();
         if (days > 0) sb.append("" + ChatColor.DARK_RED + days + "d");
         if (hours > 0) sb.append("" + ChatColor.RED + hours + "h");
-        sb.append(String.format(ChatColor.GRAY + "%02dm%02ds", minutes, seconds));
-        String ago =  sb.toString();
+        if (minutes > 0) sb.append("" + ChatColor.GRAY + minutes + "m");
+        if (seconds > 0) sb.append("" + ChatColor.GRAY + seconds + "s");
+        String ago = sb.toString();
         lore = TextComponent.fromLegacyText(new SimpleDateFormat("YY/MM/dd HH:mm:ss.SSS").format(time)
                                             + "\n" + ago + " ago");
         //
@@ -563,7 +564,9 @@ public final class SQLAction {
         }
         if (meta.location == null) {
             cb.append(" ", FormatRetention.NONE);
-            String coords = world + ":" + x + "," + y + "," + z;
+            String coords = player.getWorld().getName().equals(world)
+                ? "" + x + "," + y + "," + z
+                : world + ":" + x + "," + y + "," + z;
             cb.append(coords).color(ChatColor.DARK_GRAY).insertion(x + " " + y + " " + z);
             cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wm tp " + index));
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
