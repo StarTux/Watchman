@@ -18,6 +18,7 @@ commands:
       /wm clear - Clear your search
       /wm page PAGE - View search page
       /wm info ID - Detailed search result info
+      /wm tp ID - Teleport to log
       /wm lookup ARGS... - Search for records
         (a)ction:ACTION - Action type
         (p)layer:NAME - Player search

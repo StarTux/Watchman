@@ -25,6 +25,7 @@ import lombok.Data;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder.FormatRetention;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -214,6 +215,7 @@ public final class SQLAction {
         y = block.getY();
         z = block.getZ();
         oldType = block.getBlockData().getAsString(false);
+        if (oldType.startsWith("minecraft:")) oldType = oldType.substring(10);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
             oldTag = Json.serialize(tag);
@@ -229,6 +231,7 @@ public final class SQLAction {
         y = blockState.getY();
         z = blockState.getZ();
         oldType = blockState.getBlockData().getAsString(false);
+        if (oldType.startsWith("minecraft:")) oldType = oldType.substring(10);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {
             oldTag = Json.serialize(tag);
@@ -240,17 +243,20 @@ public final class SQLAction {
 
     public SQLAction setOldState(BlockData blockData) {
         oldType = blockData.getAsString(false);
+        if (oldType.startsWith("minecraft:")) oldType = oldType.substring(10);
         return this;
     }
 
     public SQLAction setNewState(Material mat) {
         newType = mat.createBlockData().getAsString(false);
+        if (newType.startsWith("minecraft:")) newType = newType.substring(10);
         newTag = null;
         return this;
     }
 
     public SQLAction setNewState(Block block) {
         newType = block.getBlockData().getAsString(false);
+        if (newType.startsWith("minecraft:")) newType = newType.substring(10);
         Map<String, Object> tag = Dirty.getBlockTag(block);
         if (tag != null) {
             newTag = Json.serialize(tag);
@@ -262,6 +268,7 @@ public final class SQLAction {
 
     public SQLAction setNewState(BlockState blockState) {
         newType = blockState.getBlockData().getAsString(false);
+        if (newType.startsWith("minecraft:")) newType = newType.substring(10);
         Map<String, Object> tag = Dirty.getBlockTag(blockState);
         if (tag != null) {
             newTag = Json.serialize(tag);
@@ -273,6 +280,7 @@ public final class SQLAction {
 
     public SQLAction setNewState(BlockData blockData) {
         newType = blockData.getAsString(false);
+        if (newType.startsWith("minecraft:")) newType = newType.substring(10);
         return this;
     }
 
@@ -495,29 +503,29 @@ public final class SQLAction {
 
     public void showShortInfo(Player player, LookupMeta meta, int index) {
         ComponentBuilder cb = new ComponentBuilder("[" + index + "]").color(ChatColor.YELLOW);
-        cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/watchman info " + index));
+        cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wm info " + index));
         BaseComponent[] lore = TextComponent
-            .fromLegacyText(ChatColor.GOLD + "/watchman info " + index);
+            .fromLegacyText(ChatColor.GOLD + "/wm info " + index);
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
-        cb.append(" ").reset();
+        cb.append(" ", FormatRetention.NONE);
+        // Build time format
         long interval = System.currentTimeMillis() - time.getTime();
         TimeUnit unit = TimeUnit.MILLISECONDS;
         long days = unit.toDays(interval);
         long hours = unit.toHours(interval) % 24L;
         long minutes = unit.toMinutes(interval) % 60L;
         long seconds = unit.toSeconds(interval) % 60L;
-        long millis = unit.toMillis(interval) % 1000L;
-        lore = TextComponent
-            .fromLegacyText(new SimpleDateFormat("YY/MM/dd HH:mm:ss.SSS").format(time));
-        // Build time format
         StringBuilder sb = new StringBuilder();
         if (days > 0) sb.append("" + ChatColor.DARK_RED + days + "d");
         if (hours > 0) sb.append("" + ChatColor.RED + hours + "h");
-        sb.append(String.format(ChatColor.GRAY + "%02d:%02d.%03d", minutes, seconds, millis));
+        sb.append(String.format(ChatColor.GRAY + "%02dm%02ds", minutes, seconds));
+        String ago =  sb.toString();
+        lore = TextComponent.fromLegacyText(new SimpleDateFormat("YY/MM/dd HH:mm:ss.SSS").format(time)
+                                            + "\n" + ago + " ago");
         //
-        cb.append(sb.toString()).color(ChatColor.GRAY);
+        cb.append(ago).color(ChatColor.GRAY);
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
-        cb.append(" ").reset();
+        cb.append(" ", FormatRetention.NONE);
         if (actorType == null) {
             cb.append("null").color(ChatColor.RED);
         } else if (actorType.equals("player")) {
@@ -541,7 +549,7 @@ public final class SQLAction {
                                     "/summon " + actorType));
             cb.insertion("" + actorId);
         }
-        cb.append(" ");
+        cb.append(" ", FormatRetention.NONE);
         Type actionType = getActionType();
         if (actionType == null) {
             cb.append(action).color(ChatColor.DARK_RED);
@@ -549,23 +557,22 @@ public final class SQLAction {
             cb.append(actionType.human).color(ChatColor.YELLOW);
         }
         if (type != null) {
-            cb.append(" ").append(type).color(ChatColor.YELLOW);
+            cb.append(" ", FormatRetention.NONE);
+            cb.append(type).color(ChatColor.YELLOW);
         }
         if (meta.location == null) {
-            cb.append(" ");
-            cb.append(world).color(ChatColor.DARK_GRAY).insertion(world);
-            cb.append(":");
-            String coords = x + "," + y + "," + z;
-            String coords2 = x + " " + y + " " + z;
-            cb.append(coords).color(ChatColor.DARK_GRAY).insertion(coords2);
-            cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp " + coords2));
+            cb.append(" ", FormatRetention.NONE);
+            String coords = world + ":" + x + "," + y + "," + z;
+            cb.append(coords).color(ChatColor.DARK_GRAY).insertion(x + " " + y + " " + z);
+            cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/wm tp " + index));
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                    TextComponent.fromLegacyText(coords)));
+                                    TextComponent.fromLegacyText(coords
+                                                                 + "\n/wm tp " + index)));
         }
-        final boolean showOld = oldType != null || oldTag != null;
-        final boolean showNew = newType != null || newTag != null;
+        final boolean showOld = oldTag != null;
+        final boolean showNew = newTag != null;
         if (showOld) {
-            cb.append(" ");
+            cb.append(" ", FormatRetention.NONE);
             List<String> lines = new ArrayList<>(2);
             if (oldType != null) lines.add(ChatColor.GRAY + "Type " + ChatColor.WHITE + oldType);
             if (oldTag != null) lines.add(ChatColor.GRAY + "Tag " + ChatColor.WHITE + oldTag);
@@ -576,8 +583,8 @@ public final class SQLAction {
             cb.insertion(text);
         }
         if (showNew) {
-            if (showOld) cb.append(" =>").color(ChatColor.DARK_GRAY);
-            cb.append(" ");
+            if (showOld) cb.append(" =>", FormatRetention.NONE).color(ChatColor.DARK_GRAY);
+            cb.append(" ", FormatRetention.NONE);
             List<String> lines = new ArrayList<>(2);
             if (newType != null) lines.add(ChatColor.GRAY + "Type " + ChatColor.WHITE + newType);
             if (newTag != null) lines.add(ChatColor.GRAY + "Tag " + ChatColor.WHITE + newTag);

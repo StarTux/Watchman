@@ -28,6 +28,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.metadata.FixedMetadataValue;
 
 @RequiredArgsConstructor
@@ -413,7 +414,7 @@ public final class WatchmanCommand implements TabExecutor {
         }
         case "info": {
             if (player == null) {
-                sender.sendMessage("Player expected");
+                sender.sendMessage("[watchman:info] player expected");
                 return true;
             }
             if (args.length != 2) return false;
@@ -424,7 +425,7 @@ public final class WatchmanCommand implements TabExecutor {
                 num = -1;
             }
             if (num < 0) {
-                player.sendMessage(ChatColor.RED + "Invalid page: " + args[1]);
+                player.sendMessage(ChatColor.RED + "Invalid id: " + args[1]);
                 return true;
             }
             if (!player.hasMetadata(Meta.LOOKUP)) {
@@ -479,6 +480,41 @@ public final class WatchmanCommand implements TabExecutor {
             sender.sendMessage("Deleting expired logs. See console");
             return true;
         }
+        case "tp": {
+            if (player == null) {
+                sender.sendMessage("[watchman:tp] player expected");
+                return true;
+            }
+            if (args.length != 2) return false;
+            int num;
+            try {
+                num = Integer.parseInt(args[1]);
+            } catch (NumberFormatException nfe) {
+                num = -1;
+            }
+            if (num < 0) {
+                player.sendMessage(ChatColor.RED + "Invalid id: " + args[1]);
+                return true;
+            }
+            if (!player.hasMetadata(Meta.LOOKUP)) {
+                player.sendMessage(ChatColor.RED + "No records available");
+                return true;
+            }
+            List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
+            if (num >= actions.size()) {
+                player.sendMessage(ChatColor.RED + "Invalid action index: " + num);
+                return true;
+            }
+            SQLAction action = actions.get(num);
+            Block block = action.getBlock();
+            if (block == null) {
+                player.sendMessage(ChatColor.RED + "Action has no location: " + num);
+                return true;
+            }
+            player.sendMessage(ChatColor.YELLOW + "Teleporting to log " + num);
+            player.teleport(block.getLocation().add(0.5, 0.0, 0.5), TeleportCause.COMMAND);
+            return true;
+        }
         default:
             break;
         }
@@ -489,7 +525,7 @@ public final class WatchmanCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command comand, String alias, String[] args) {
         String arg = args.length == 0 ? "" : args[args.length - 1];
         if (args.length == 1) {
-            return matchTab(arg, Arrays.asList("tool", "rollback", "clear", "page", "info", "lookup"));
+            return matchTab(arg, Arrays.asList("tool", "rollback", "clear", "page", "info", "lookup", "tab"));
         }
         if (args.length > 1 && (args[0].equals("lookup") || args[0].equals("l"))) {
             if (arg.startsWith("action:") || arg.startsWith("a:")) {
