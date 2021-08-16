@@ -12,6 +12,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.DoubleChest;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -33,20 +35,28 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
+import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 
 @RequiredArgsConstructor
@@ -490,5 +500,125 @@ public final class EventListener implements Listener {
                     .setNewState(block);
                 plugin.store(row);
             });
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onEntityPlace(EntityPlaceEvent event) {
+        plugin.store(new SQLAction().setNow()
+                     .setActionType(SQLAction.Type.ENTITY_PLACE)
+                     .setActorPlayer(event.getPlayer())
+                     .setLocation(event.getEntity().getLocation())
+                     .setNewState(event.getEntity())
+                     .setEntityType(event.getEntity().getType()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onVehicleDestroy(VehicleDestroyEvent event) {
+        plugin.store(new SQLAction().setNow()
+                     .setActionType(SQLAction.Type.ENTITY_KILL)
+                     .setActorEntity(event.getAttacker())
+                     .setLocation(event.getVehicle().getLocation())
+                     .setOldState(event.getVehicle())
+                     .setEntityType(event.getVehicle().getType()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onHangingPlace(HangingPlaceEvent event) {
+        plugin.store(new SQLAction().setNow()
+                     .setActionType(SQLAction.Type.ENTITY_PLACE)
+                     .setActorPlayer(event.getPlayer())
+                     .setLocation(event.getEntity().getLocation())
+                     .setNewState(event.getEntity())
+                     .setEntityType(event.getEntity().getType()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onHangingBreak(HangingBreakEvent event) {
+        if (event instanceof HangingBreakByEntityEvent) return;
+        plugin.store(new SQLAction().setNow()
+                     .setActionType(SQLAction.Type.ENTITY_KILL)
+                     .setActorTypeName(event.getCause().name().toLowerCase())
+                     .setLocation(event.getEntity().getLocation())
+                     .setOldState(event.getEntity())
+                     .setEntityType(event.getEntity().getType()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
+        plugin.store(new SQLAction().setNow()
+                     .setActionType(SQLAction.Type.ENTITY_KILL)
+                     .setActorEntity(event.getRemover())
+                     .setLocation(event.getEntity().getLocation())
+                     .setOldState(event.getEntity())
+                     .setEntityType(event.getEntity().getType()));
+    }
+
+    // Listen for ItemFrame edits
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (event.getEntity() instanceof ItemFrame) {
+            ItemFrame itemFrame = (ItemFrame) event.getEntity();
+            if (itemFrame.isFixed()) return;
+            ItemStack item = itemFrame.getItem();
+            if (item == null || item.getType() == Material.AIR) return;
+            plugin.store(new SQLAction().setNow()
+                         .setActionType(SQLAction.Type.ITEM_REMOVE)
+                         .setActorEntity(event.getDamager())
+                         .setLocation(itemFrame.getLocation())
+                         .setOldState(item)
+                         .setMaterial(item.getType()));
+        }
+    }
+
+    // Listen for ItemFrame edits
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+        if (event.getRightClicked() instanceof ItemFrame) {
+            ItemFrame itemFrame = (ItemFrame) event.getRightClicked();
+            if (itemFrame.isFixed()) return;
+            ItemStack item = itemFrame.getItem();
+            if (item != null && item.getType() != Material.AIR) return;
+            Player player = event.getPlayer();
+            item = player.getInventory().getItemInMainHand();
+            if (item == null || item.getType() == Material.AIR) {
+                item = player.getInventory().getItemInOffHand();
+                if (item == null || item.getType() == Material.AIR) return;
+            }
+            plugin.store(new SQLAction().setNow()
+                         .setActionType(SQLAction.Type.ITEM_INSERT)
+                         .setActorPlayer(player)
+                         .setLocation(itemFrame.getLocation())
+                         .setNewState(item)
+                         .setMaterial(item.getType()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
+        ItemStack playerItem = event.getPlayerItem();
+        ItemStack armorStandItem = event.getArmorStandItem();
+        if (playerItem != null && playerItem.getType() == Material.AIR) playerItem = null;
+        if (armorStandItem != null && armorStandItem.getType() == Material.AIR) armorStandItem = null;
+        if (playerItem == null && armorStandItem == null) return;
+        Player player = event.getPlayer();
+        ArmorStand armorStand = event.getRightClicked();
+        SQLAction row = new SQLAction().setNow()
+            .setActorPlayer(player)
+            .setLocation(armorStand.getLocation());
+        if (playerItem != null && armorStandItem != null) { // sawp
+            row.setActionType(SQLAction.Type.ITEM_SWAP)
+                .setOldState(armorStandItem)
+                .setNewState(playerItem)
+                .setMaterial(armorStandItem.getType());
+        } else if (playerItem != null) { // insert
+            row.setActionType(SQLAction.Type.ITEM_INSERT)
+                .setNewState(playerItem)
+                .setMaterial(playerItem.getType());
+        } else if (armorStandItem != null) { // remove
+            row.setActionType(SQLAction.Type.ITEM_REMOVE)
+                .setNewState(armorStandItem)
+                .setMaterial(armorStandItem.getType());
+        }
+        plugin.store(row);
     }
 }

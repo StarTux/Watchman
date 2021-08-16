@@ -93,8 +93,12 @@ public final class SQLAction {
         BLOCK_EXPLODE("explode", Category.BLOCK),
         BLOCK_WORLDEDIT("worldedit", Category.BLOCK),
         ENTITY_KILL("kill", Category.ENTITY),
+        ENTITY_PLACE("place", Category.ENTITY),
         ITEM_DROP("drop", Category.INVENTORY),
         ITEM_PICKUP("pickup", Category.INVENTORY),
+        ITEM_INSERT("insert", Category.INVENTORY),
+        ITEM_REMOVE("remove", Category.INVENTORY),
+        ITEM_SWAP("swap", Category.INVENTORY),
         INVENTORY_OPEN("open", Category.INVENTORY),
         COMMAND("command", Category.CHAT),
         CHAT("chat", Category.CHAT);
