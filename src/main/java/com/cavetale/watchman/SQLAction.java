@@ -40,6 +40,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 @Data
@@ -448,7 +449,7 @@ public final class SQLAction {
         }
     }
 
-    public void showDetails(CommandSender sender, int index) {
+    public void showDetails(CommandSender sender, String index) {
         StringBuilder sb = new StringBuilder();
         sb.append(index);
         sb.append(" ");
@@ -578,6 +579,7 @@ public final class SQLAction {
             if (oldTag != null) lines.add(ChatColor.GRAY + "Tag " + ChatColor.WHITE + oldTag);
             lore = TextComponent.fromLegacyText(String.join("\n", lines));
             String text = oldType != null ? oldType : "Unknown";
+            if (text.contains("[")) text = text.substring(0, text.indexOf("["));
             cb.append(text).color(ChatColor.RED);
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
             cb.insertion(text);
@@ -590,9 +592,17 @@ public final class SQLAction {
             if (newTag != null) lines.add(ChatColor.GRAY + "Tag " + ChatColor.WHITE + newTag);
             lore = TextComponent.fromLegacyText(String.join("\n", lines));
             String text = newType != null ? newType : "Unknown";
+            if (text.contains("[")) text = text.substring(0, text.indexOf("["));
             cb.append(text).color(ChatColor.GREEN);
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
             cb.insertion(text);
+        }
+        if (probablyHasInventory()) {
+            cb.append(" ", FormatRetention.NONE);
+            lore = TextComponent.fromLegacyText(ChatColor.GOLD + "/wm item " + index);
+            cb.append("[i]").color(ChatColor.GOLD)
+                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wm item " + index))
+                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
         }
         player.spigot().sendMessage(cb.create());
     }
@@ -613,6 +623,58 @@ public final class SQLAction {
         }
         if (newTag != null && newTag.length() > MAX_TAG_LENGTH) {
             newTag = newTag.substring(0, MAX_TAG_LENGTH);
+        }
+    }
+
+    public boolean probablyHasInventory() {
+        return (oldTag != null && (oldTag.contains("\"Items\"") || oldTag.contains("\"id\"")))
+            || (newTag != null && (newTag.contains("\"Items\"") || newTag.contains("\"id\"")));
+    }
+
+    public boolean openInventory(Player player) {
+        if (openInventory(player, oldTag)) return true;
+        if (openInventory(player, newTag)) return true;
+        return false;
+    }
+
+    private static boolean openInventory(Player player, String src) {
+        if (src == null || !src.startsWith("{")) return false;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> json = (Map<String, Object>) Json.deserialize(src, Map.class);
+        if (json.containsKey("Items") && json.get("Items") instanceof List) {
+            Inventory inv = Bukkit.createInventory(null, 6 * 9);
+            @SuppressWarnings("unchecked")
+            List<Object> itemList = (List<Object>) json.get("Items");
+            for (Object o : itemList) {
+                if (!(o instanceof Map)) return false;
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) o;
+                ItemStack itemStack = Dirty.deserializeItem(map);
+                if (map.containsKey("slot") && map.get("slot") instanceof Number) {
+                    int slot = ((Number) map.get("slot")).intValue();
+                    if (slot >= 0 && slot < 6 * 9) {
+                        inv.setItem(slot, itemStack);
+                    } else {
+                        inv.addItem(itemStack);
+                    }
+                } else {
+                    inv.addItem(itemStack);
+                }
+            }
+            player.openInventory(inv);
+            return true;
+        } else if (json.containsKey("id") && json.get("id") instanceof String) {
+            try {
+                ItemStack item = Dirty.deserializeItem(json);
+                Inventory inv = Bukkit.createInventory(null, 6 * 9);
+                inv.addItem(item);
+                player.openInventory(inv);
+            } catch (Exception e) {
+                return false;
+            }
+            return true;
+        } else {
+            return false;
         }
     }
 }

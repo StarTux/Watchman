@@ -287,7 +287,8 @@ public final class EventListener implements Listener {
             plugin.store(new SQLAction()
                          .setNow().setActionType(SQLAction.Type.INVENTORY_OPEN)
                          .setActorPlayer(player)
-                         .setOldState(block));
+                         .setOldState(block)
+                         .setMaterial(block.getType()));
         } else if (holder instanceof DoubleChest) {
             DoubleChest doubleChest = (DoubleChest) holder;
             long now = System.currentTimeMillis();
@@ -297,7 +298,8 @@ public final class EventListener implements Listener {
                 plugin.store(new SQLAction()
                              .time(now).setActionType(SQLAction.Type.INVENTORY_OPEN)
                              .setActorPlayer(player)
-                             .setOldState(block));
+                             .setOldState(block)
+                             .setMaterial(block.getType()));
             }
             InventoryHolder right = doubleChest.getRightSide();
             if (right instanceof BlockInventoryHolder) {
@@ -305,7 +307,8 @@ public final class EventListener implements Listener {
                 plugin.store(new SQLAction()
                              .time(now).setActionType(SQLAction.Type.INVENTORY_OPEN)
                              .setActorPlayer(player)
-                             .setOldState(block));
+                             .setOldState(block)
+                             .setMaterial(block.getType()));
             }
         }
     }

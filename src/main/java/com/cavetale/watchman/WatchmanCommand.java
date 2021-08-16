@@ -367,7 +367,7 @@ public final class WatchmanCommand implements TabExecutor {
                 }
                 return true;
             }
-            break;
+            return true;
         case "page": {
             if (args.length != 2) return false;
             int num;
@@ -407,7 +407,7 @@ public final class WatchmanCommand implements TabExecutor {
                 for (int i = fromIndex; i <= toIndex; i += 1) {
                     if (i < 0 || i >= consoleSearch.size()) continue;
                     SQLAction action = consoleSearch.get(i);
-                    action.showDetails(sender, i);
+                    action.showDetails(sender, "" + i);
                 }
             }
             return true;
@@ -418,27 +418,9 @@ public final class WatchmanCommand implements TabExecutor {
                 return true;
             }
             if (args.length != 2) return false;
-            int num;
-            try {
-                num = Integer.parseInt(args[1]);
-            } catch (NumberFormatException nfe) {
-                num = -1;
-            }
-            if (num < 0) {
-                player.sendMessage(ChatColor.RED + "Invalid id: " + args[1]);
-                return true;
-            }
-            if (!player.hasMetadata(Meta.LOOKUP)) {
-                player.sendMessage(ChatColor.RED + "No records available");
-                return true;
-            }
-            List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-            if (num >= actions.size()) {
-                player.sendMessage(ChatColor.RED + "Invalid action index: " + num);
-                return true;
-            }
-            SQLAction action = actions.get(num);
-            action.showDetails(player, num);
+            SQLAction action = findLog(player, args[1]);
+            if (action == null) return true;
+            action.showDetails(player, args[1]);
             return true;
         }
         case "rank": return rankCommand(player, Arrays.copyOfRange(args, 1, args.length));
@@ -486,46 +468,66 @@ public final class WatchmanCommand implements TabExecutor {
                 return true;
             }
             if (args.length != 2) return false;
-            int num;
-            try {
-                num = Integer.parseInt(args[1]);
-            } catch (NumberFormatException nfe) {
-                num = -1;
-            }
-            if (num < 0) {
-                player.sendMessage(ChatColor.RED + "Invalid id: " + args[1]);
-                return true;
-            }
-            if (!player.hasMetadata(Meta.LOOKUP)) {
-                player.sendMessage(ChatColor.RED + "No records available");
-                return true;
-            }
-            List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-            if (num >= actions.size()) {
-                player.sendMessage(ChatColor.RED + "Invalid action index: " + num);
-                return true;
-            }
-            SQLAction action = actions.get(num);
+            SQLAction action = findLog(player, args[1]);
+            if (action == null) return true;
             Block block = action.getBlock();
             if (block == null) {
-                player.sendMessage(ChatColor.RED + "Action has no location: " + num);
+                player.sendMessage(ChatColor.RED + "Action has no location: " + args[1]);
                 return true;
             }
-            player.sendMessage(ChatColor.YELLOW + "Teleporting to log " + num);
+            player.sendMessage(ChatColor.YELLOW + "Teleporting to log " + args[1]);
             player.teleport(block.getLocation().add(0.5, 0.0, 0.5), TeleportCause.COMMAND);
             return true;
         }
-        default:
-            break;
+        case "item": case "items": {
+            if (player == null) {
+                sender.sendMessage("[watchman:tp] player expected");
+                return true;
+            }
+            if (args.length != 2) return false;
+            SQLAction action = findLog(player, args[1]);
+            if (action == null) return true;
+            if (!action.openInventory(player)) {
+                player.sendMessage(ChatColor.RED + "Log has no item(s)!");
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "Viewing items...");
+            }
+            return true;
         }
-        return false;
+        default:
+            return false;
+        }
+    }
+
+    private SQLAction findLog(Player player, String arg) {
+        int num;
+        try {
+            num = Integer.parseInt(arg);
+        } catch (NumberFormatException nfe) {
+            num = -1;
+        }
+        if (num < 0) {
+            player.sendMessage(ChatColor.RED + "Invalid id: " + arg);
+            return null;
+        }
+        if (!player.hasMetadata(Meta.LOOKUP)) {
+            player.sendMessage(ChatColor.RED + "No records available");
+            return null;
+        }
+        List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
+        if (num >= actions.size()) {
+            player.sendMessage(ChatColor.RED + "Invalid action index: " + num);
+            return null;
+        }
+        SQLAction action = actions.get(num);
+        return action;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command comand, String alias, String[] args) {
         String arg = args.length == 0 ? "" : args[args.length - 1];
         if (args.length == 1) {
-            return matchTab(arg, Arrays.asList("tool", "rollback", "clear", "page", "info", "lookup", "tab"));
+            return matchTab(arg, Arrays.asList("tool", "rollback", "clear", "page", "info", "lookup", "tab", "tp", "item"));
         }
         if (args.length > 1 && (args[0].equals("lookup") || args[0].equals("l"))) {
             if (arg.startsWith("action:") || arg.startsWith("a:")) {

@@ -16,9 +16,10 @@ commands:
       Usage:
       /wm tool - Toggle block logging tool
       /wm clear - Clear your search
-      /wm page PAGE - View search page
-      /wm info ID - Detailed search result info
-      /wm tp ID - Teleport to log
+      /wm page <page> - View search page
+      /wm info <id> - Detailed search result info
+      /wm tp <id> - Teleport to log
+      /wm item <id> - View log item(s)
       /wm lookup ARGS... - Search for records
         (a)ction:ACTION - Action type
         (p)layer:NAME - Player search
