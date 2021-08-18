@@ -31,11 +31,12 @@ public final class EntityHider implements Listener {
 
     // Packets that update remote player entities
     private static final PacketType[] ENTITY_PACKETS = {
-        ENTITY_EQUIPMENT, ANIMATION, NAMED_ENTITY_SPAWN,
-        COLLECT, SPAWN_ENTITY, SPAWN_ENTITY_LIVING, SPAWN_ENTITY_PAINTING, SPAWN_ENTITY_EXPERIENCE_ORB,
-        ENTITY_VELOCITY, REL_ENTITY_MOVE, ENTITY_LOOK, ENTITY_MOVE_LOOK, ENTITY_MOVE_LOOK,
-        ENTITY_TELEPORT, ENTITY_HEAD_ROTATION, ENTITY_STATUS, ATTACH_ENTITY, ENTITY_METADATA,
-        ENTITY_EFFECT, REMOVE_ENTITY_EFFECT, BLOCK_BREAK_ANIMATION
+        ENTITY_EQUIPMENT, ANIMATION, NAMED_ENTITY_SPAWN, COLLECT,
+        SPAWN_ENTITY, SPAWN_ENTITY_LIVING, SPAWN_ENTITY_PAINTING,
+        SPAWN_ENTITY_EXPERIENCE_ORB, ENTITY_VELOCITY, REL_ENTITY_MOVE,
+        ENTITY_LOOK, ENTITY_TELEPORT, ENTITY_HEAD_ROTATION,
+        ENTITY_STATUS, ATTACH_ENTITY, ENTITY_METADATA, ENTITY_EFFECT,
+        REMOVE_ENTITY_EFFECT, BLOCK_BREAK_ANIMATION
 
         // We don't handle DESTROY_ENTITY though
     };
@@ -252,9 +253,8 @@ public final class EntityHider implements Listener {
         boolean visibleBefore = setVisibility(observer, entity.getEntityId(), false);
 
         if (visibleBefore) {
-            PacketContainer destroyEntity = new PacketContainer(ENTITY_DESTROY);
-            destroyEntity.getSpecificModifier(IntList.class).write(0, new IntArrayList(entity.getEntityId()));
-
+            PacketContainer destroyEntity = manager.createPacketConstructor(ENTITY_DESTROY, IntList.class)
+                .createPacket(new IntArrayList(entity.getEntityId()));
             // Make the entity disappear
             try {
                 manager.sendServerPacket(observer, destroyEntity);
