@@ -64,7 +64,7 @@ public final class RewindTask extends BukkitRunnable {
         for (Entity e : world.getEntities()) {
             if (e instanceof Player) continue;
             if (!cuboid.contains(e.getLocation().getBlock())) continue;
-            plugin.getEntityHider().hideEntity(player, e);
+            plugin.getEntityHider(h -> h.hide(player, e));
         }
     }
 
@@ -72,7 +72,7 @@ public final class RewindTask extends BukkitRunnable {
         for (Entity e : world.getEntities()) {
             if (e instanceof Player) continue;
             if (!cuboid.contains(e.getLocation().getBlock())) continue;
-            plugin.getEntityHider().showEntity(player, e);
+            plugin.getEntityHider(h -> h.show(player, e));
         }
     }
 

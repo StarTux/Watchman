@@ -4,6 +4,7 @@ import com.winthier.sql.SQLDatabase;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Consumer;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -21,13 +22,13 @@ public final class WatchmanPlugin extends JavaPlugin {
     WatchmanCommand watchmanCommand = new WatchmanCommand(this);
     EventListener eventListener = new EventListener(this);
     WorldEditListener worldEditListener = new WorldEditListener(this);
-    private EntityHider entityHider = null;
     protected long deleteActionsAfter = 10L;
     protected boolean eventBlockGrow;
     protected boolean eventBlockForm;
     protected boolean eventBlockSpread;
     protected boolean eventEntityBlockForm;
     protected boolean worldEdit;
+    private EntityHider entityHider;
 
     @Override
     public void onEnable() {
@@ -156,10 +157,12 @@ public final class WatchmanPlugin extends JavaPlugin {
         player.spigot().sendMessage(cb.create());
     }
 
-    public EntityHider getEntityHider() {
-        if (entityHider == null) {
-            entityHider = new EntityHider(this, EntityHider.Policy.BLACKLIST);
+    public void getEntityHider(Consumer<EntityHider> callback) {
+        if (entityHider == null && Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
+            entityHider = new EntityHider();
         }
-        return entityHider;
+        if (entityHider != null) {
+            callback.accept(entityHider);
+        }
     }
 }
