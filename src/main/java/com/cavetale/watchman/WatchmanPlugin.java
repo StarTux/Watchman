@@ -93,11 +93,17 @@ public final class WatchmanPlugin extends JavaPlugin {
      */
     void drainStorage() {
         if (storage.isEmpty()) return;
-        for (SQLAction it : storage) {
+        List<SQLAction> copy = storage;
+        storage = new ArrayList<>();
+        for (SQLAction it : copy) {
             it.sanitize();
         }
-        database.insertAsync(storage, null);
-        storage = new ArrayList<>();
+        final int max = 1024;
+        final int size = copy.size();
+        for (int i = 0; i < size; i += max) {
+            List<SQLAction> slice = copy.subList(i, Math.min(size, i + max));
+            database.insertAsync(slice, null);
+        }
     }
 
     void showActionPage(Player player, List<SQLAction> actions, LookupMeta meta, int page) {
