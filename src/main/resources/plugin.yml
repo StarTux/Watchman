@@ -8,7 +8,7 @@ description: Player action logging tool
 author: StarTux
 website: http://cavetale.com
 
-depend: [Core Dirty, SQL, PlayerCache, Sidebar]
+depend: [Core, Dirty, SQL, PlayerCache, Sidebar]
 softdepend: [WorldEdit, ProtocolLib]
 
 commands:
