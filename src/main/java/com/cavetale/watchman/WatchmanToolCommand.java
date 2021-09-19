@@ -26,15 +26,19 @@ public final class WatchmanToolCommand implements TabExecutor {
             return true;
         }
         Player player = (Player) sender;
+        toggle(player);
+        return true;
+    }
+
+    protected void toggle(Player player) {
         boolean hasTool = player.hasMetadata(Meta.TOOL_KEY);
         if (hasTool) {
             player.removeMetadata(Meta.TOOL_KEY, plugin);
-            sender.sendMessage(Component.text("Watchman tool disabled", NamedTextColor.RED));
+            player.sendMessage(Component.text("Watchman tool disabled", NamedTextColor.RED));
         } else {
             player.setMetadata(Meta.TOOL_KEY, new FixedMetadataValue(plugin, true));
             player.sendMessage(Component.text("Watchman tool enabled", NamedTextColor.GREEN));
         }
-        return true;
     }
 
     @Override

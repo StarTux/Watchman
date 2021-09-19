@@ -64,14 +64,7 @@ public final class WatchmanCommand implements TabExecutor {
                 return true;
             }
             if (args.length != 1) return false;
-            boolean hasTool = player.hasMetadata(Meta.TOOL_KEY);
-            if (hasTool) {
-                player.removeMetadata(Meta.TOOL_KEY, plugin);
-                sender.sendMessage(ChatColor.YELLOW + "Watchman tool disabled");
-            } else {
-                player.setMetadata(Meta.TOOL_KEY, new FixedMetadataValue(plugin, true));
-                player.sendMessage(ChatColor.GREEN + "Watchman tool enabled");
-            }
+            plugin.watchmanToolCommand.toggle(player);
             return true;
         }
         case "lookup":
