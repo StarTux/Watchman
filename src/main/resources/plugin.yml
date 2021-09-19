@@ -57,6 +57,9 @@ permissions:
   watchman.tool:
     description: Use /watchman tool
     default: op
+  watchman.tool.detective:
+    description: Show more actions with the tool
+    default: op
   watchman.rollback:
     description: Use /watchman rollback
     default: op

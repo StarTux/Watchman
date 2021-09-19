@@ -5,6 +5,7 @@ import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import io.papermc.paper.event.block.PlayerShearBlockEvent;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -344,11 +345,14 @@ public final class EventListener implements Listener {
         meta.location = new LookupMeta.Vec(x, y, z);
         player.removeMetadata(Meta.LOOKUP, plugin);
         player.removeMetadata(Meta.LOOKUP_META, plugin);
+        List<String> inCategories = player.hasPermission("watchman.tool.detective")
+            ? SQLAction.Type.inCategories(SQLAction.Type.Category.BLOCK,
+                                          SQLAction.Type.Category.ENTITY,
+                                          SQLAction.Type.Category.INVENTORY)
+            : SQLAction.Type.inCategories(SQLAction.Type.Category.BLOCK);
         plugin.database.find(SQLAction.class)
             .eq("world", world).eq("x", x).eq("y", y).eq("z", z)
-            .in("action", SQLAction.Type.inCategories(SQLAction.Type.Category.BLOCK,
-                                                      SQLAction.Type.Category.ENTITY,
-                                                      SQLAction.Type.Category.INVENTORY))
+            .in("action", inCategories)
             .orderByDescending("id")
             .findListAsync((actions) -> {
                     if (!player.isValid()) return;
