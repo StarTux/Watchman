@@ -322,7 +322,7 @@ public final class EventListener implements Listener {
     void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (!event.getPlayer().hasMetadata(Meta.TOOL_KEY)) return;
-        if (!event.getPlayer().hasPermission("watchman.watchman")) return;
+        if (!event.getPlayer().hasPermission("watchman.tool")) return;
         event.setCancelled(true);
         Block block;
         switch (event.getAction()) {
