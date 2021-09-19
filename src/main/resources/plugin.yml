@@ -1,13 +1,18 @@
+main: com.cavetale.watchman.WatchmanPlugin
 name: Watchman
-description: Player action logging tool
-author: StarTux
+
 version: 0.1
 api-version: 1.17
+
+description: Player action logging tool
+author: StarTux
 website: http://cavetale.com
-main: com.cavetale.watchman.WatchmanPlugin
-depend: [Dirty, SQL, PlayerCache, Core]
+
+depend: [Core Dirty, SQL, PlayerCache, Sidebar]
 softdepend: [WorldEdit, ProtocolLib]
+
 commands:
+
   watchman:
     aliases: [ wm ]
     description: Watchman admin interface
@@ -37,7 +42,15 @@ commands:
       /wm fake - Add missing blocks for a nice rewind
       /wm reload - Reload configuration
       /wm expire - Delete expired logs
+
+  wmtool:
+    aliases: []
+    permission: watchman.tool
+    description: Toggle the Watchman tool
+    usage: /wmtool - Toggle the Watchman tool
+
 permissions:
+
   watchman.watchman:
     description: Use /watchman
     default: op

@@ -56,7 +56,7 @@ public final class WatchmanCommand implements TabExecutor {
         }
         case "tool": {
             if (player == null) {
-                sender.sendMessage("Player expected");
+                sender.sendMessage("[watchman:wm] player expected");
                 return true;
             }
             if (!player.hasPermission("watchman.tool")) {

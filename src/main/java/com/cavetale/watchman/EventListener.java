@@ -1,9 +1,13 @@
 package com.cavetale.watchman;
 
 import com.cavetale.core.event.block.PlayerBreakBlockEvent;
+import com.cavetale.sidebar.PlayerSidebarEvent;
+import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import io.papermc.paper.event.block.PlayerShearBlockEvent;
 import lombok.RequiredArgsConstructor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -623,5 +627,15 @@ public final class EventListener implements Listener {
                 .setMaterial(armorStandItem.getType());
         }
         plugin.store(row);
+    }
+
+    @EventHandler
+    protected void onPlayerSidebar(PlayerSidebarEvent event) {
+        if (event.getPlayer().hasMetadata(Meta.TOOL_KEY)) {
+            event.add(plugin, Priority.HIGH,
+                      Component.text().content("/wm tool").color(NamedTextColor.YELLOW)
+                      .append(Component.text(" enabled!", NamedTextColor.GRAY))
+                      .build());
+        }
     }
 }
