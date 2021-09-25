@@ -709,11 +709,11 @@ public final class WatchmanCommand implements TabExecutor {
             return true;
         }
         String sql = "SELECT `actor_name`, `action`, count(*) c FROM `" + plugin.database.getTable(SQLAction.class).getTableName() + "`"
-            + " WHERE `actor_name` IS NOT NULL"
-            + " AND `world` = '" + player.getWorld().getName() + "'"
+            + " WHERE `world` = '" + player.getWorld().getName() + "'"
             + " AND `x` BETWEEN " + cuboid.ax + " AND " + cuboid.bx
-            + " AND `y` BETWEEN " + cuboid.ay + " AND " + cuboid.by
             + " AND `z` BETWEEN " + cuboid.az + " AND " + cuboid.bz
+            + " AND `y` BETWEEN " + cuboid.ay + " AND " + cuboid.by
+            + " AND `actor_name` IS NOT NULL"
             + " AND `action` IN ("
             + SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK).stream().map(s -> "'" + s + "'").collect(Collectors.joining(", "))
             + ")"
