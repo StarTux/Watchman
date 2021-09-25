@@ -637,7 +637,7 @@ public final class EventListener implements Listener {
     protected void onPlayerSidebar(PlayerSidebarEvent event) {
         if (event.getPlayer().hasMetadata(Meta.TOOL_KEY)) {
             event.add(plugin, Priority.HIGH,
-                      Component.text().content("/wm tool").color(NamedTextColor.YELLOW)
+                      Component.text().content("/wmtool").color(NamedTextColor.YELLOW)
                       .append(Component.text(" enabled!", NamedTextColor.GRAY))
                       .build());
         }
