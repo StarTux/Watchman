@@ -430,8 +430,15 @@ public final class WatchmanCommand implements TabExecutor {
             player.sendMessage("pos2 saved");
             return true;
         case "center":
-            center = player.getLocation();
-            player.sendMessage("center saved");
+            if (args.length == 2 && args[1].equals("reset")) {
+                center = null;
+                player.sendMessage("center reset");
+            } else if (args.length == 1) {
+                center = player.getLocation();
+                player.sendMessage("center saved");
+            } else {
+                return false;
+            }
             return true;
         case "nopos":
             pos1 = null;
