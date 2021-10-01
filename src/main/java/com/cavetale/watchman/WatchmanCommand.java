@@ -675,17 +675,14 @@ public final class WatchmanCommand implements TabExecutor {
                 player.sendMessage(ChatColor.RED + "No selection!");
                 return true;
             }
-            SQLTable<SQLAction>.Finder search = plugin.database.find(SQLAction.class);
-            search.eq("world", worldName);
-            search.gte("x", cuboid.ax);
-            search.gte("y", cuboid.ay);
-            search.gte("z", cuboid.az);
-            search.lte("x", cuboid.bx);
-            search.lte("y", cuboid.by);
-            search.lte("z", cuboid.bz);
-            search.in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK));
-            search.orderByAscending("id");
-            search.findListAsync(ls -> rewindCallback(player, ls, duration, cuboid, flags));
+            plugin.database.find(SQLAction.class)
+                .between("x", cuboid.ax, cuboid.bx) // index
+                .between("z", cuboid.az, cuboid.bz) // index
+                .eq("world", worldName) // index
+                .in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK)) // index
+                .between("y", cuboid.ay, cuboid.by)
+                .orderByAscending("id")
+                .findListAsync(ls -> rewindCallback(player, ls, duration, cuboid, flags));
         }
         player.sendMessage("Preparing rewind of " + cuboid + " within " + duration + "s...");
         return true;
