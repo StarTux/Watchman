@@ -1,6 +1,7 @@
 package com.cavetale.watchman;
 
 import com.cavetale.core.event.block.PlayerBreakBlockEvent;
+import com.cavetale.core.event.block.PlayerChangeBlockEvent;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
@@ -497,6 +498,16 @@ public final class EventListener implements Listener {
                      .setActorPlayer(event.getPlayer())
                      .setOldState(event.getBlock())
                      .setNewState(Material.AIR));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onPlayerChangeBlock(PlayerChangeBlockEvent event) {
+        plugin.store(new SQLAction().setNow()
+                     .setActionType(SQLAction.Type.BLOCK_CHANGE)
+                     .setMaterial(event.getNewBlockData().getMaterial())
+                     .setActorPlayer(event.getPlayer())
+                     .setOldState(event.getOldBlockState())
+                     .setNewState(event.getNewBlockState()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
