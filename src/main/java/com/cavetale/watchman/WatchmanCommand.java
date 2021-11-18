@@ -36,10 +36,6 @@ public final class WatchmanCommand implements TabExecutor {
     private final WatchmanPlugin plugin;
     private List<SQLAction> consoleSearch = null;
 
-    private Location center;
-    private Location pos1;
-    private Location pos2;
-
     public void enable() {
         plugin.getCommand("watchman").setExecutor(this);
     }
@@ -421,41 +417,6 @@ public final class WatchmanCommand implements TabExecutor {
             sender.sendMessage("Storage: " + plugin.storage.size() + " rows");
             sender.sendMessage("Backlog: " + plugin.database.getBacklogSize());
             return true;
-        case "pos1":
-            pos1 = player.getLocation();
-            player.sendMessage("pos1 saved");
-            return true;
-        case "pos2":
-            pos2 = player.getLocation();
-            player.sendMessage("pos2 saved");
-            return true;
-        case "center":
-            if (args.length == 2 && args[1].equals("reset")) {
-                center = null;
-                player.sendMessage("center reset");
-            } else if (args.length == 1) {
-                center = player.getLocation();
-                player.sendMessage("center saved");
-            } else {
-                return false;
-            }
-            return true;
-        case "nopos":
-            pos1 = null;
-            pos2 = null;
-            center = null;
-            player.sendMessage("positions reset");
-            return true;
-        case "rewind":
-            if (player == null) {
-                sender.sendMessage("[watchman:rewind] player expected");
-                return true;
-            }
-            if (!player.hasPermission("watchman.rewind")) {
-                player.sendMessage(ChatColor.RED + "You don't have permission!");
-                return true;
-            }
-            return rewindCommand(player, Arrays.copyOfRange(args, 1, args.length));
         case "fake": return fakeCommand(player, Arrays.copyOfRange(args, 1, args.length));
         case "expire": {
             plugin.deleteExpiredLogs();
@@ -624,12 +585,6 @@ public final class WatchmanCommand implements TabExecutor {
             for (int i = 0; i < totalPageCount; i += 1) ls.add("" + (i + 1));
             return matchTab(arg, ls);
         }
-        if (args.length >= 3 && args[0].equals("rewind")) {
-            return Stream.of(RewindTask.Flag.values())
-                .map(Enum::name).map(String::toLowerCase).map(s -> s.replace("_", "-"))
-                .filter(s -> s.startsWith(arg))
-                .collect(Collectors.toList());
-        }
         return null;
     }
 
@@ -639,70 +594,6 @@ public final class WatchmanCommand implements TabExecutor {
 
     private List<String> matchTab(String arg, Stream<String> args) {
         return args.filter(a -> a.startsWith(arg)).collect(Collectors.toList());
-    }
-
-    boolean rewindCommand(Player player, String[] args) {
-        final int duration;
-        if (args.length >= 1) {
-            try {
-                duration = Integer.parseInt(args[0]);
-            } catch (NumberFormatException nfe) {
-                player.sendMessage(ChatColor.RED + "Bad duration (seconds): " + args[0]);
-                return true;
-            }
-        } else {
-            duration = 10;
-        }
-        String worldName = player.getWorld().getName();
-        Set<RewindTask.Flag> flags = EnumSet.noneOf(RewindTask.Flag.class);
-        for (int i = 1; i < args.length; i += 1) {
-            String arg = args[i];
-            RewindTask.Flag flag;
-            try {
-                flag = RewindTask.Flag.valueOf(arg.toUpperCase().replace("-", "_"));
-            } catch (IllegalArgumentException iae) {
-                player.sendMessage(ChatColor.RED + "Invalid flag: " + arg);
-                return true;
-            }
-            flags.add(flag);
-        }
-        Cuboid cuboid;
-        if (flags.contains(RewindTask.Flag.LOOKUP)) {
-            if (!player.hasMetadata(Meta.LOOKUP) || !player.hasMetadata(Meta.LOOKUP_META)) {
-                player.sendMessage(ChatColor.RED + "Make a lookup first.");
-                return true;
-            }
-            LookupMeta meta = (LookupMeta) player.getMetadata(Meta.LOOKUP_META).get(0).value();
-            List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-            cuboid = meta.selection != null ? meta.selection : Cuboid.ZERO;
-            rewindCallback(player, actions, duration, cuboid, flags);
-        } else {
-            cuboid = WorldEdit.getSelection(player);
-            if (cuboid == null) {
-                player.sendMessage(ChatColor.RED + "No selection!");
-                return true;
-            }
-            plugin.database.find(SQLAction.class)
-                .between("x", cuboid.ax, cuboid.bx) // index
-                .between("z", cuboid.az, cuboid.bz) // index
-                .eq("world", worldName) // index
-                .in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK)) // index
-                .between("y", cuboid.ay, cuboid.by)
-                .orderByAscending("id")
-                .findListAsync(ls -> rewindCallback(player, ls, duration, cuboid, flags));
-        }
-        player.sendMessage("Preparing rewind of " + cuboid + " within " + duration + "s...");
-        return true;
-    }
-
-    void rewindCallback(Player player, List<SQLAction> actions, int duration, Cuboid cuboid, Set<RewindTask.Flag> flags) {
-        Location loc1 = pos1 != null && pos1.getWorld().equals(player.getWorld()) ? pos1 : null;
-        Location loc2 = pos2 != null && pos2.getWorld().equals(player.getWorld()) ? pos2 : null;
-        Location loc3 = center != null && center.getWorld().equals(player.getWorld()) ? center : null;
-        int durationInTicks = duration * 20;
-        int blocksPerTick = Math.max(1, actions.size() / durationInTicks);
-        RewindTask task = new RewindTask(plugin, player, actions, 100L, blocksPerTick, cuboid, flags, loc1, loc2, loc3);
-        task.start();
     }
 
     boolean rankCommand(Player player, String[] args) {

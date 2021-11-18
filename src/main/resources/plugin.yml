@@ -49,6 +49,12 @@ commands:
     description: Toggle the Watchman tool
     usage: /wmtool - Toggle the Watchman tool
 
+  rewind:
+    aliases: []
+    permission: watchman.rewind
+    description: Block edit rewind
+    usage: /rewind
+
 permissions:
 
   watchman.watchman:

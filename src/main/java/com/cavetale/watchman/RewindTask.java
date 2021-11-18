@@ -33,14 +33,17 @@ public final class RewindTask extends BukkitRunnable {
     private int actionIndex = 0;
     private World world;
 
+    @RequiredArgsConstructor
     public enum Flag {
-        LOOKUP, // Use results from lookup
-        NO_SNOW,
-        NO_HEADS,
-        NO_TNT,
-        REVERSE,
-        MOVE,
-        AIR;
+        LOOKUP("Use results from previous lookup"), // Use results from lookup
+        NO_SNOW("Skip snow"),
+        NO_HEADS("Skip heads"),
+        NO_TNT("Skip tnt"),
+        REVERSE("Revert animation"),
+        MOVE("Apply movement: pos 1, pos 2, center"),
+        AIR("Turn all origin blocks into air");
+
+        public final String description;
     }
 
     public void start() {

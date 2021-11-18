@@ -21,6 +21,7 @@ public final class WatchmanPlugin extends JavaPlugin {
     List<SQLAction> storage = new ArrayList<>();
     WatchmanCommand watchmanCommand = new WatchmanCommand(this);
     WatchmanToolCommand watchmanToolCommand = new WatchmanToolCommand(this);
+    RewindCommand rewindCommand = new RewindCommand(this);
     EventListener eventListener = new EventListener(this);
     WorldEditListener worldEditListener = new WorldEditListener(this);
     protected long deleteActionsAfter = 10L;
@@ -41,6 +42,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         database.createAllTables();
         watchmanCommand.enable();
         watchmanToolCommand.enable();
+        rewindCommand.enable();
         eventListener.enable();
         worldEditListener.enable();
         Bukkit.getScheduler().runTaskTimer(this, this::drainStorage, 20L, 20L);
