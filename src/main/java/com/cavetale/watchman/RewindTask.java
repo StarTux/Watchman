@@ -57,7 +57,7 @@ public final class RewindTask extends BukkitRunnable {
             actionIndex = actions.size() - 1;
         }
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 2.0f);
-        runTaskTimer(plugin, 100L, 1L);
+        runTaskTimer(plugin, 200L, 1L);
         if (flags.contains(Flag.MOVE) && moveFrom != null) {
             player.teleport(moveFrom, TeleportCause.PLUGIN);
         }
