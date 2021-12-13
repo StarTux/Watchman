@@ -57,7 +57,7 @@ final class WorldEditListener {
             Block block = world.getBlockAt(loc.getX(), loc.getY(), loc.getZ());
             BlockData newBlockData = BukkitAdapter.adapt(bl);
             plugin.store(new SQLAction()
-                         .setNow().setActionType(SQLAction.Type.BLOCK_WORLDEDIT)
+                         .setNow().setActionType(ActionType.BLOCK_WORLDEDIT)
                          .setActorPlayer(player)
                          .setOldState(block)
                          .setMaterial(newBlockData.getMaterial())

@@ -7,16 +7,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.EnumSet;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.Index;
@@ -56,7 +52,7 @@ public final class SQLAction {
     @Id private Integer id;
     // Action
     @Column(nullable = false) private Date time;
-    @Column(nullable = false, length = 31) private String action; // enum Type, e.g. block_break
+    @Column(nullable = false, length = 31) private String action; // enum ActionType, e.g. block_break
     @Column(nullable = true, length = 255) private String type; // Material or EntityType
     // Actor
     @Column(nullable = true) private UUID actorId; // Player unique id
@@ -78,90 +74,17 @@ public final class SQLAction {
     @Column(nullable = true, length = MAX_TAG_LENGTH)
     private String newTag; // New NBT tag, only for blocks, if available
 
-    public enum Type {
-        PLAYER_JOIN("join", Category.PLAYER),
-        PLAYER_QUIT("quit", Category.PLAYER),
-        PLAYER_DEATH("death", Category.PLAYER),
-        BLOCK_BREAK("break", Category.BLOCK),
-        BLOCK_PLACE("place", Category.BLOCK),
-        BLOCK_CHANGE("change", Category.BLOCK),
-        BLOCK_GROW("grow", Category.BLOCK),
-        BLOCK_FORM("form", Category.BLOCK),
-        BLOCK_SHEAR("shear", Category.BLOCK),
-        BLOCK_DESTROY("destroy", Category.BLOCK),
-        BLOCK_FAKE("fake", Category.BLOCK),
-        BUCKET_EMPTY("bucket", Category.BLOCK),
-        BUCKET_FILL("debucket", Category.BLOCK),
-        BLOCK_EXPLODE("explode", Category.BLOCK),
-        BLOCK_WORLDEDIT("worldedit", Category.BLOCK),
-        ENTITY_KILL("kill", Category.ENTITY),
-        ENTITY_PLACE("place", Category.ENTITY),
-        ITEM_DROP("drop", Category.INVENTORY),
-        ITEM_PICKUP("pickup", Category.INVENTORY),
-        ITEM_INSERT("insert", Category.INVENTORY),
-        ITEM_REMOVE("remove", Category.INVENTORY),
-        ITEM_SWAP("swap", Category.INVENTORY),
-        INVENTORY_OPEN("open", Category.INVENTORY),
-        COMMAND("command", Category.CHAT),
-        CHAT("chat", Category.CHAT);
-
-        public enum Category {
-            /**
-             * Block changing from oldState to newState.
-             */
-            BLOCK,
-
-            /**
-             * Player related.
-             */
-            PLAYER,
-
-            /**
-             * Entity related.
-             */
-            ENTITY,
-
-            INVENTORY,
-            CHAT;
-        }
-
-        public final String key;
-        public final String human;
-        public final Category category;
-
-        Type(final String human, final Category category) {
-            this.key = name().toLowerCase();
-            this.human = human;
-            this.category = category;
-        }
-
-        public static List<String> inCategory(Category category) {
-            return Stream.of(Type.values())
-                .filter(t -> t.category == category)
-                .map(t -> t.key)
-                .collect(Collectors.toList());
-        }
-
-        public static List<String> inCategories(Category first, Category... others) {
-            Set<Category> set = EnumSet.of(first, others);
-            return Stream.of(Type.values())
-                .filter(t -> set.contains(t.category))
-                .map(t -> t.key)
-                .collect(Collectors.toList());
-        }
-    }
-
-    public Type getActionType() {
+    public ActionType getActionType() {
         if (action == null) return null;
         try {
-            return Type.valueOf(action.toUpperCase());
+            return ActionType.valueOf(action.toUpperCase());
         } catch (IllegalArgumentException iae) {
             WatchmanPlugin.getInstance().getLogger().warning("Unknown action type: " + action);
             return null;
         }
     }
 
-    public SQLAction setActionType(Type actionType) {
+    public SQLAction setActionType(ActionType actionType) {
         action = actionType.name().toLowerCase();
         return this;
     }
@@ -413,7 +336,7 @@ public final class SQLAction {
     }
 
     boolean rollback() {
-        Type actionType = getActionType();
+        ActionType actionType = getActionType();
         switch (actionType.category) {
         case BLOCK:
             World bworld = Bukkit.getWorld(world);
@@ -482,7 +405,7 @@ public final class SQLAction {
         sb.append(y);
         sb.append(",");
         sb.append(z);
-        Type actionType = getActionType();
+        ActionType actionType = getActionType();
         final boolean showOld = oldType != null || oldTag != null;
         final boolean showNew = newType != null || newTag != null;
         if (showOld) {
@@ -544,7 +467,7 @@ public final class SQLAction {
             cb.append("unknown").color(ChatColor.RED);
         } else {
             lore = TextComponent
-                .fromLegacyText("Type: " + actorType + "\n" + "UUID: " + actorId);
+                .fromLegacyText("ActionType: " + actorType + "\n" + "UUID: " + actorId);
             cb.append(actorType).color(ChatColor.DARK_GREEN);
             cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
             cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
@@ -552,7 +475,7 @@ public final class SQLAction {
             cb.insertion("" + actorId);
         }
         cb.append(" ", FormatRetention.NONE);
-        Type actionType = getActionType();
+        ActionType actionType = getActionType();
         if (actionType == null) {
             cb.append(action).color(ChatColor.DARK_RED);
         } else {
@@ -578,7 +501,7 @@ public final class SQLAction {
         if (showOld) {
             cb.append(" ", FormatRetention.NONE);
             List<String> lines = new ArrayList<>(2);
-            if (oldType != null) lines.add(ChatColor.GRAY + "Type " + ChatColor.WHITE + oldType);
+            if (oldType != null) lines.add(ChatColor.GRAY + "ActionType " + ChatColor.WHITE + oldType);
             if (oldTag != null) lines.add(ChatColor.GRAY + "Tag " + ChatColor.WHITE + oldTag);
             lore = TextComponent.fromLegacyText(String.join("\n", lines));
             String text = oldType != null ? oldType : "Unknown";

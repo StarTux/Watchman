@@ -13,7 +13,7 @@ final class LookupMeta {
     Vec location = null;
     String world = null;
     UUID player = null;
-    SQLAction.Type action = null;
+    ActionType action = null;
     boolean global;
     boolean worldwide;
     boolean worldedit;

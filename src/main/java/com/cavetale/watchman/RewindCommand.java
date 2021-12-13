@@ -83,7 +83,7 @@ public final class RewindCommand extends AbstractCommand<WatchmanPlugin> {
                 .between("x", cuboid.ax, cuboid.bx) // index
                 .between("z", cuboid.az, cuboid.bz) // index
                 .eq("world", worldName) // index
-                .in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK)) // index
+                .in("action", ActionType.inCategory(ActionType.Category.BLOCK)) // index
                 .between("y", cuboid.ay, cuboid.by)
                 .orderByAscending("id")
                 .findListAsync(ls -> rewindCallback(player, ls, duration, cuboid, flags));

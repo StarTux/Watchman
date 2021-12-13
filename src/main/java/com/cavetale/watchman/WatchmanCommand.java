@@ -97,7 +97,7 @@ public final class WatchmanCommand implements TabExecutor {
                     break;
                 case "action": case "a":
                     try {
-                        SQLAction.Type action = SQLAction.Type.valueOf(toks[1].toUpperCase());
+                        ActionType action = ActionType.valueOf(toks[1].toUpperCase());
                         search.eq("action", action.name().toLowerCase());
                         meta.action = action;
                     } catch (IllegalArgumentException iae) {
@@ -492,7 +492,7 @@ public final class WatchmanCommand implements TabExecutor {
         }
         if (args.length > 1 && (args[0].equals("lookup") || args[0].equals("l"))) {
             if (arg.startsWith("action:") || arg.startsWith("a:")) {
-                return matchTab(arg, Arrays.stream(SQLAction.Type.values()).map(v -> arg.split(":", 2)[0] + ":" + v.name().toLowerCase()));
+                return matchTab(arg, Arrays.stream(ActionType.values()).map(v -> arg.split(":", 2)[0] + ":" + v.name().toLowerCase()));
             }
             if (arg.startsWith("radius:") || arg.startsWith("r:")) {
                 String l = arg.split(":", 2)[0];
@@ -610,7 +610,7 @@ public final class WatchmanCommand implements TabExecutor {
             + " AND `y` BETWEEN " + cuboid.ay + " AND " + cuboid.by
             + " AND `actor_name` IS NOT NULL"
             + " AND `action` IN ("
-            + SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK).stream().map(s -> "'" + s + "'").collect(Collectors.joining(", "))
+            + ActionType.inCategory(ActionType.Category.BLOCK).stream().map(s -> "'" + s + "'").collect(Collectors.joining(", "))
             + ")"
             + " GROUP BY `actor_name`, `action`"
             + " ORDER BY `c` ASC";
@@ -649,7 +649,7 @@ public final class WatchmanCommand implements TabExecutor {
             .between("x", cuboid.ax, cuboid.bx)
             .between("y", cuboid.ay, cuboid.by)
             .between("z", cuboid.az, cuboid.bz)
-            .in("action", SQLAction.Type.inCategory(SQLAction.Type.Category.BLOCK))
+            .in("action", ActionType.inCategory(ActionType.Category.BLOCK))
             .findListAsync(list -> {
                     if (!player.isOnline() || !player.getWorld().equals(world)) return;
                     for (SQLAction row : list) {
@@ -664,7 +664,7 @@ public final class WatchmanCommand implements TabExecutor {
                         Block block = vec.toBlock(world);
                         if (block.isEmpty()) continue;
                         plugin.store(new SQLAction()
-                                     .setNow().setActionType(SQLAction.Type.BLOCK_FAKE)
+                                     .setNow().setActionType(ActionType.BLOCK_FAKE)
                                      .setLocation(block)
                                      .setOldState(Material.AIR.createBlockData())
                                      .setNewState(block)
