@@ -80,7 +80,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         final long days = deleteActionsAfter;
         final long now = System.currentTimeMillis();
         final Date then = new Date(now - Duration.ofDays(days).toMillis());
-        final int limit = 1000000;
+        final int limit = 10000;
         getLogger().info("Deleting actions older than " + days + " days (" + then + ") limit=" + limit);
         database.find(SQLAction.class)
             .lt("time", then)
