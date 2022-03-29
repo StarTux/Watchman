@@ -418,11 +418,6 @@ public final class WatchmanCommand implements TabExecutor {
             sender.sendMessage("Backlog: " + plugin.database.getBacklogSize());
             return true;
         case "fake": return fakeCommand(player, Arrays.copyOfRange(args, 1, args.length));
-        case "expire": {
-            plugin.deleteExpiredLogs();
-            sender.sendMessage("Deleting expired logs. See console");
-            return true;
-        }
         case "tp": {
             if (player == null) {
                 sender.sendMessage("[watchman:tp] player expected");

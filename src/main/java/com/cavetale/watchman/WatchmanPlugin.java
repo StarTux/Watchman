@@ -1,6 +1,7 @@
 package com.cavetale.watchman;
 
 import com.winthier.sql.SQLDatabase;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -46,7 +47,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         eventListener.enable();
         worldEditListener.enable();
         Bukkit.getScheduler().runTaskTimer(this, this::drainStorage, 20L, 20L);
-        Bukkit.getScheduler().runTaskTimer(this, this::deleteExpiredLogs, 0L, 20L * 60L * 60L);
+        Bukkit.getScheduler().runTaskLater(this, this::deleteExpiredLogs, 20L);
     }
 
     @Override
@@ -75,16 +76,20 @@ public final class WatchmanPlugin extends JavaPlugin {
         player.removeMetadata(Meta.LOOKUP_META, this);
     }
 
-    void deleteExpiredLogs() {
-        long days = deleteActionsAfter;
-        long now = System.currentTimeMillis();
-        Date then = new Date(now - days * 24L * 60L * 60L * 1000L);
-        getLogger().info("Deleting actions older than " + days + " days (" + then + ")");
+    private void deleteExpiredLogs() {
+        final long days = deleteActionsAfter;
+        final long now = System.currentTimeMillis();
+        final Date then = new Date(now - Duration.ofDays(days).toMillis());
+        final int limit = 1000000;
+        getLogger().info("Deleting actions older than " + days + " days (" + then + ") limit=" + limit);
         database.find(SQLAction.class)
             .lt("time", then)
+            .limit(limit)
             .deleteAsync(count -> {
                     long stop = (System.currentTimeMillis() - now) / 1000L;
                     getLogger().info("Deleted " + count + " old actions in " + stop + "s");
+                    final long delay = limit == count ? 20L : 20L * 60L * 10L;
+                    Bukkit.getScheduler().runTaskLater(this, this::deleteExpiredLogs, delay);
                 });
     }
 

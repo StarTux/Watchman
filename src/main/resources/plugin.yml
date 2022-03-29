@@ -41,7 +41,6 @@ commands:
       /wm rewind [seconds] [flags...] - Rewind WE selection
       /wm fake - Add missing blocks for a nice rewind
       /wm reload - Reload configuration
-      /wm expire - Delete expired logs
 
   wmtool:
     aliases: []
