@@ -48,6 +48,12 @@ commands:
     description: Toggle the Watchman tool
     usage: /wmtool - Toggle the Watchman tool
 
+  wmpage:
+    aliases: []
+    permission: watchman.page
+    description: Watchman paginator
+    usage: /wmpage <index> - View pages
+
   rewind:
     aliases: []
     permission: watchman.rewind
@@ -61,6 +67,9 @@ permissions:
     default: op
   watchman.tool:
     description: Use /watchman tool
+    default: op
+  watchman.page:
+    description: Use /wmpage
     default: op
   watchman.tool.detective:
     description: Show more actions with the tool

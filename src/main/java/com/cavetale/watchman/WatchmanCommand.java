@@ -34,7 +34,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 @RequiredArgsConstructor
 public final class WatchmanCommand implements TabExecutor {
     private final WatchmanPlugin plugin;
-    private List<SQLAction> consoleSearch = null;
+    protected List<SQLAction> consoleSearch = null;
 
     public void enable() {
         plugin.getCommand("watchman").setExecutor(this);
@@ -359,47 +359,7 @@ public final class WatchmanCommand implements TabExecutor {
             return true;
         case "page": {
             if (args.length != 2) return false;
-            int num;
-            try {
-                num = Integer.parseInt(args[1]);
-            } catch (NumberFormatException nfe) {
-                num = -1;
-            }
-            if (num < 0) {
-                sender.sendMessage(ChatColor.RED + "Invalid page: " + args[1]);
-                return true;
-            }
-            if (player != null) {
-                if (!player.hasMetadata(Meta.LOOKUP)) {
-                    player.sendMessage(ChatColor.RED + "No records available");
-                    return true;
-                }
-                List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-                LookupMeta meta;
-                if (!player.hasMetadata(Meta.LOOKUP)) {
-                    meta = new LookupMeta();
-                } else {
-                    meta = (LookupMeta) player.getMetadata(Meta.LOOKUP_META).get(0).value();
-                }
-                plugin.showActionPage(player, actions, meta, num - 1);
-            } else {
-                if (consoleSearch == null) {
-                    plugin.getLogger().info("No records available");
-                    return true;
-                }
-                int page = num - 1;
-                int pageLen = 10;
-                int totalPageCount = (consoleSearch.size() - 1) / pageLen + 1;
-                int fromIndex = page * pageLen;
-                int toIndex = fromIndex + pageLen - 1;
-                plugin.getLogger().info("Page " + num + "/" + totalPageCount);
-                for (int i = fromIndex; i <= toIndex; i += 1) {
-                    if (i < 0 || i >= consoleSearch.size()) continue;
-                    SQLAction action = consoleSearch.get(i);
-                    action.showDetails(sender, "" + i);
-                }
-            }
-            return true;
+            return plugin.watchmanPageCommand.page(sender, args[1]);
         }
         case "info": {
             if (player == null) {

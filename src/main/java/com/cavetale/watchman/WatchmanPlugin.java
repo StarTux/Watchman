@@ -22,6 +22,7 @@ public final class WatchmanPlugin extends JavaPlugin {
     List<SQLAction> storage = new ArrayList<>();
     WatchmanCommand watchmanCommand = new WatchmanCommand(this);
     WatchmanToolCommand watchmanToolCommand = new WatchmanToolCommand(this);
+    WatchmanPageCommand watchmanPageCommand = new WatchmanPageCommand(this);
     RewindCommand rewindCommand = new RewindCommand(this);
     EventListener eventListener = new EventListener(this);
     WorldEditListener worldEditListener = new WorldEditListener(this);
@@ -43,6 +44,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         database.createAllTables();
         watchmanCommand.enable();
         watchmanToolCommand.enable();
+        watchmanPageCommand.enable();
         rewindCommand.enable();
         eventListener.enable();
         worldEditListener.enable();
@@ -59,7 +61,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         database.waitForAsyncTask();
     }
 
-    void loadConf() {
+    protected void loadConf() {
         reloadConfig();
         deleteActionsAfter = getConfig().getLong("DeleteActionsAfter", 10L);
         eventBlockGrow = getConfig().getBoolean("Events.BlockGrow");
@@ -70,7 +72,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         worldEditListener.disable();
     }
 
-    void exit(Player player) {
+    protected void exit(Player player) {
         player.removeMetadata(Meta.TOOL_KEY, this);
         player.removeMetadata(Meta.LOOKUP, this);
         player.removeMetadata(Meta.LOOKUP_META, this);
@@ -93,14 +95,14 @@ public final class WatchmanPlugin extends JavaPlugin {
                 });
     }
 
-    void store(SQLAction action) {
+    protected void store(SQLAction action) {
         storage.add(action);
     }
 
     /**
      * Call regularly and when plugin is disabled.
      */
-    void drainStorage() {
+    private void drainStorage() {
         if (storage.isEmpty()) return;
         List<SQLAction> copy = storage;
         storage = new ArrayList<>();
@@ -115,7 +117,7 @@ public final class WatchmanPlugin extends JavaPlugin {
         }
     }
 
-    void showActionPage(Player player, List<SQLAction> actions, LookupMeta meta, int page) {
+    protected void showActionPage(Player player, List<SQLAction> actions, LookupMeta meta, int page) {
         int pageLen = 5;
         int totalPageCount = (actions.size() - 1) / pageLen + 1;
         player.sendMessage(ChatColor.YELLOW + "Watchman log page " + (page + 1) + "/" + totalPageCount
@@ -155,8 +157,8 @@ public final class WatchmanPlugin extends JavaPlugin {
         cb.append("[Prev]");
         if (page > 0) {
             cb.color(ChatColor.GOLD)
-                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/watchman page " + page))
-                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.GOLD + "/wm page " + page)));
+                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wmpage " + page))
+                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.GOLD + "/wmpage " + page)));
         } else {
             cb.color(ChatColor.DARK_GRAY);
         }
@@ -164,8 +166,8 @@ public final class WatchmanPlugin extends JavaPlugin {
         cb.append("[Next]");
         if (page < totalPageCount - 1) {
             cb.color(ChatColor.GOLD)
-                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/watchman page " + (page + 2)))
-                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.GOLD + "/wm page " + (page + 2))));
+                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wmpage " + (page + 2)))
+                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.GOLD + "/wmpage " + (page + 2))));
         } else {
             cb.color(ChatColor.DARK_GRAY);
         }
