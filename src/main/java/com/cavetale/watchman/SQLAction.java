@@ -3,6 +3,7 @@ package com.cavetale.watchman;
 import com.cavetale.core.util.Json;
 import com.cavetale.dirty.Dirty;
 import com.winthier.playercache.PlayerCache;
+import com.winthier.sql.SQLRow;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -47,7 +48,7 @@ import org.bukkit.inventory.ItemStack;
                   @Index(name = "id_action", columnList = "action"),
                   @Index(name = "id_type", columnList = "type"),
                   @Index(name = "id_xz", columnList = "x,z")})
-public final class SQLAction {
+public final class SQLAction implements SQLRow {
     private static final int MAX_TAG_LENGTH = 8192;
     @Id private Integer id;
     // Action

@@ -2,7 +2,7 @@ main: com.cavetale.watchman.WatchmanPlugin
 name: Watchman
 
 version: 0.1
-api-version: 1.17
+api-version: 1.18
 
 description: Player action logging tool
 author: StarTux
