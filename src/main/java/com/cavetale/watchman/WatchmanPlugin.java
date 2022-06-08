@@ -5,7 +5,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.function.Consumer;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -32,7 +31,6 @@ public final class WatchmanPlugin extends JavaPlugin {
     protected boolean eventBlockSpread;
     protected boolean eventEntityBlockForm;
     protected boolean worldEdit;
-    private EntityHider entityHider;
 
     @Override
     public void onEnable() {
@@ -172,14 +170,5 @@ public final class WatchmanPlugin extends JavaPlugin {
             cb.color(ChatColor.DARK_GRAY);
         }
         player.spigot().sendMessage(cb.create());
-    }
-
-    public void getEntityHider(Consumer<EntityHider> callback) {
-        if (entityHider == null && Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")) {
-            entityHider = new EntityHider();
-        }
-        if (entityHider != null) {
-            callback.accept(entityHider);
-        }
     }
 }
