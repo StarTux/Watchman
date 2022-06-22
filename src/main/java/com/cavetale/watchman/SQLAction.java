@@ -430,7 +430,7 @@ public final class SQLAction implements SQLRow {
         ComponentBuilder cb = new ComponentBuilder("[" + index + "]").color(ChatColor.YELLOW);
         cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wm info " + index));
         BaseComponent[] lore = TextComponent
-            .fromLegacyText(ChatColor.GOLD + "/wm info " + index);
+            .fromLegacyText(ChatColor.GOLD + "/wm info " + index + "\n" + ChatColor.GRAY + "id=" + this.id);
         cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, lore));
         cb.append(" ", FormatRetention.NONE);
         // Build time format
