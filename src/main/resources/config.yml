@@ -1,4 +1,3 @@
-DeleteActionsAfter: 10 # days
 # Allow disabling some high-frequency events
 Events:
   BlockGrow: false
@@ -6,3 +5,5 @@ Events:
   BlockSpread: false
   EntityBlockForm: false
 WorldEdit: false
+LogExpiry: 30
+  

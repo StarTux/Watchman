@@ -1,40 +1,51 @@
 package com.cavetale.watchman;
 
+import com.cavetale.core.command.CommandArgCompleter;
+import com.cavetale.core.command.CommandWarn;
+import com.cavetale.core.command.RemotePlayer;
+import com.cavetale.core.connect.Connect;
+import com.cavetale.watchman.action.Action;
+import com.cavetale.watchman.action.ActionType;
+import com.cavetale.watchman.lookup.ActionTypeLookup;
+import com.cavetale.watchman.lookup.EntityTypeLookup;
+import com.cavetale.watchman.lookup.LookupContainer;
+import com.cavetale.watchman.lookup.MaterialLookup;
+import com.cavetale.watchman.lookup.MaterialTagLookup;
+import com.cavetale.watchman.lookup.PlayerLookup;
+import com.cavetale.watchman.lookup.RadiusLookup;
+import com.cavetale.watchman.lookup.SelectionLookup;
+import com.cavetale.watchman.lookup.TimeLookup;
+import com.cavetale.watchman.lookup.WorldLookup;
+import com.cavetale.watchman.session.LookupSession;
+import com.cavetale.watchman.sql.SQLLog;
 import com.winthier.playercache.PlayerCache;
-import com.winthier.sql.SQLTable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
-import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
-import org.bukkit.metadata.FixedMetadataValue;
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
 public final class WatchmanCommand implements TabExecutor {
     private final WatchmanPlugin plugin;
-    protected List<SQLAction> consoleSearch = null;
 
     public void enable() {
         plugin.getCommand("watchman").setExecutor(this);
@@ -42,6 +53,15 @@ public final class WatchmanCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
+        try {
+            return watchman(sender, args);
+        } catch (CommandWarn warn) {
+            sender.sendMessage(warn.getMessage());
+            return true;
+        }
+    }
+
+    private boolean watchman(CommandSender sender, String[] args) {
         final Player player = sender instanceof Player ? (Player) sender : null;
         if (args.length == 0) return false;
         switch (args[0]) {
@@ -56,7 +76,7 @@ public final class WatchmanCommand implements TabExecutor {
                 return true;
             }
             if (!player.hasPermission("watchman.tool")) {
-                player.sendMessage(ChatColor.RED + "You don't have permission");
+                player.sendMessage(text("You don't have permission", RED));
                 return true;
             }
             if (args.length != 1) return false;
@@ -65,349 +85,224 @@ public final class WatchmanCommand implements TabExecutor {
         }
         case "lookup":
         case "l": {
-            if (player != null && !player.hasPermission("watchman.lookup")) {
-                player.sendMessage(ChatColor.RED + "You don't have permission");
+            if (!sender.hasPermission("watchman.lookup")) {
+                player.sendMessage(text("You don't have permission", RED));
                 return true;
             }
-            if (args.length == 0) return false;
-            Location location = player != null
-                ? player.getLocation()
-                : plugin.getServer().getWorlds().get(0).getSpawnLocation();
-            LookupMeta meta = new LookupMeta();
-            meta.world = location.getWorld().getName();
-            meta.cx = location.getBlockX();
-            meta.cz = location.getBlockZ();
-            meta.radius = 12;
-            SQLTable<SQLAction>.Finder search = plugin.database.find(SQLAction.class);
+            if (args.length < 2) return false;
+            LookupContainer lookup = new LookupContainer();
             for (int i = 1; i < args.length; i += 1) {
                 String arg = args[i];
                 String[] toks = arg.split(":", 2);
+                String key = toks[0];
+                String value = toks[1];
                 if (toks.length != 2) return false;
-                switch (toks[0]) {
-                case "player": case "p":
-                    if (true) {
-                        UUID uuid = PlayerCache.uuidForName(toks[1]);
-                        if (uuid == null) {
-                            sender.sendMessage("Unknown player: " + toks[1]);
-                            return true;
-                        }
-                        search.eq("actorId", uuid);
-                        meta.player = uuid;
-                    }
+                switch (key) {
+                case "player": case "p": {
+                    PlayerCache target = PlayerCache.require(value);
+                    lookup.setWho(new PlayerLookup(target.uuid));
                     break;
+                }
                 case "action": case "a":
                     try {
-                        ActionType action = ActionType.valueOf(toks[1].toUpperCase());
-                        search.eq("action", action.name().toLowerCase());
-                        meta.action = action;
+                        ActionType actionType = ActionType.valueOf(value.toUpperCase());
+                        lookup.setActionType(new ActionTypeLookup(actionType));
                     } catch (IllegalArgumentException iae) {
-                        sender.sendMessage("Unknown action: " + toks[1]);
-                        return true;
+                        throw new CommandWarn("Invalid action: " + value);
                     }
                     break;
-                case "world": case "w":
-                    meta.world = toks[1];
-                    meta.worldwide = true;
+                case "world": case "w": {
+                    lookup.setWhere(WorldLookup.of(value));
                     break;
-                case "center": case "c":
-                    if (true) {
-                        String[] locs = toks[1].split(",", 2);
-                        if (locs.length != 2) {
-                            sender.sendMessage("2 comma separated coordinates expected, got: " + toks[1]);
-                            return true;
-                        }
-                        try {
-                            meta.cx = Integer.parseInt(locs[0]);
-                            meta.cz = Integer.parseInt(locs[1]);
-                        } catch (NumberFormatException nfe) {
-                            sender.sendMessage("Invalid coordinates: " + toks[1]);
-                            return true;
-                        }
-                    }
-                    break;
+                }
                 case "radius": case "r":
-                    switch (toks[1]) {
-                    case "global": case "g":
-                        meta.global = true;
-                        break;
+                    switch (value) {
                     case "world": case "w":
-                        meta.worldwide = true;
+                        if (player == null) throw new CommandWarn("r:global Player expected");
+                        lookup.setWhere(WorldLookup.of(player.getWorld()));
                         break;
-                    case "worldedit": case "we":
-                        if (player == null) {
-                            sender.sendMessage("[watchman:wm] Player expected!");
-                            return true;
-                        }
-                        meta.worldedit = true;
-                        meta.selection = WorldEdit.getSelection(player);
-                        if (meta.selection == null) {
-                            player.sendMessage(ChatColor.RED + "WorldEdit selection required!");
-                            return true;
-                        }
+                    case "worldedit": case "we": {
+                        if (player == null) throw new CommandWarn("r:worldedit Player expected");
+                        Cuboid selection = WorldEdit.getSelection(player);
+                        if (selection == null) throw new CommandWarn("r:worldedit Selection required");
+                        lookup.setWhere(SelectionLookup.of(player.getWorld(), selection));
                         break;
+                    }
                     default:
-                        try {
-                            meta.radius = Integer.parseInt(toks[1]);
-                        } catch (NumberFormatException nfe) {
-                            sender.sendMessage("Invalid radius: " + toks[1]);
-                            return true;
-                        }
+                        lookup.setWhere(RadiusLookup.of(player.getLocation(),
+                                                        CommandArgCompleter.requireInt(value, intValue -> intValue > 0)));
                         break;
                     }
                     break;
                 case "block": case "b":
                 case "item": case "i": {
-                    Set<Material> mats;
-                    String string = toks[1];
-                    if (string.startsWith("#")) {
+                    if (value.startsWith("#")) {
                         Tag<Material> tag;
-                        String registry = toks[0].startsWith("b") ? Tag.REGISTRY_BLOCKS : Tag.REGISTRY_ITEMS;
-                        tag = Bukkit.getTag(registry, NamespacedKey.minecraft(string.substring(1).toLowerCase()), Material.class);
-                        if (tag == null) {
-                            sender.sendMessage("Invalid material tag: " + string);
-                            return true;
-                        }
-                        meta.type = tag;
-                        mats = tag.getValues();
+                        String registry = key.startsWith("b") ? Tag.REGISTRY_BLOCKS : Tag.REGISTRY_ITEMS;
+                        tag = Bukkit.getTag(registry, NamespacedKey.minecraft(value.substring(1).toLowerCase()), Material.class);
+                        if (tag == null) throw new CommandWarn("Invalid material tag: " + value);
+                        lookup.setChangedType(new MaterialTagLookup(key.charAt(0), tag));
                     } else {
                         Material material;
                         try {
-                            material = Material.valueOf(string.toUpperCase());
+                            material = Material.valueOf(value.toUpperCase());
                         } catch (IllegalArgumentException iae) {
-                            sender.sendMessage("Invalid material: " + string);
-                            return true;
+                            throw new CommandWarn("Invalid material: " + value);
                         }
-                        meta.type = material;
-                        mats = EnumSet.of(material);
+                        lookup.setChangedType(new MaterialLookup(key.charAt(0), material));
                     }
-                    search.in("type", mats.stream().map(Material::getKey).map(NamespacedKey::getKey).collect(Collectors.toSet()));
                     break;
                 }
                 case "entity": case "e": {
-                    Set<EntityType> types;
-                    String string = toks[1];
                     EntityType entityType;
                     try {
-                        entityType = EntityType.valueOf(string.toUpperCase());
+                        entityType = EntityType.valueOf(value.toUpperCase());
                     } catch (IllegalArgumentException iae) {
-                        sender.sendMessage("Invalid entity type: " + string);
-                        return true;
+                        throw new CommandWarn("Invalid entity type: " + value);
                     }
                     if (entityType == EntityType.UNKNOWN) {
-                        sender.sendMessage("Invalid entity type: " + string);
-                        return true;
+                        throw new CommandWarn("Invalid entity type: " + value);
                     }
-                    meta.type = entityType;
-                    types = EnumSet.of(entityType);
-                    search.in("type", types.stream().map(EntityType::getKey).map(NamespacedKey::getKey).collect(Collectors.toSet()));
+                    lookup.setChangedType(new EntityTypeLookup(entityType));
                     break;
                 }
                 case "time": case "t":
-                    if (true) {
-                        long seconds;
-                        try {
-                            seconds = Time.parseSeconds(toks[1]);
-                        } catch (IllegalArgumentException nfe) {
-                            sender.sendMessage("Time expected, got: " + toks[1]);
-                            return true;
-                        }
-                        meta.seconds = seconds;
-                        Date time = new Date(System.currentTimeMillis() - (seconds * 1000));
-                        search.gt("time", time);
-                    }
+                    lookup.setTime(TimeLookup.parse(value));
                     break;
                 default:
-                    sender.sendMessage("Unknown option: " + toks[0]);
-                    return true;
+                    throw new CommandWarn("Unknown option: " + key);
                 }
             }
-            if (meta.worldedit) {
-                search.eq("world", meta.world);
-                search.between("x", meta.selection.ax, meta.selection.bx);
-                search.between("z", meta.selection.az, meta.selection.bz);
-                search.between("y", meta.selection.ay, meta.selection.by);
-            } else if (!meta.global) {
-                search.eq("world", meta.world);
-                if (!meta.worldwide) {
-                    search.gt("x", meta.cx - meta.radius);
-                    search.lt("x", meta.cx + meta.radius);
-                    search.gt("z", meta.cz - meta.radius);
-                    search.lt("z", meta.cz + meta.radius);
-                }
+            if (lookup.isEmpty()) {
+                throw new CommandWarn("Please provide some parameters!");
             }
-            search.orderByDescending("id");
-            if (player != null) {
-                player.removeMetadata(Meta.LOOKUP, plugin);
-                player.removeMetadata(Meta.LOOKUP_META, plugin);
-                player.sendMessage(ChatColor.YELLOW + "Searching...");
-                search.findListAsync((actions) -> {
-                        if (!player.isValid()) return;
-                        if (actions.isEmpty()) {
-                            player.sendMessage(ChatColor.RED + "Nothing found.");
-                            return;
+            lookup.accept(plugin.database.find(SQLLog.class))
+                .orderByDescending("time")
+                .findListAsync(logs -> {
+                        if (player == null) {
+                            plugin.database.scheduleAsyncTask(() -> {
+                                    List<Action> actions = new ArrayList<>(logs.size());
+                                    for (SQLLog log : logs) {
+                                        actions.add(new Action().fetch(log));
+                                    }
+                                    Bukkit.getScheduler().runTask(plugin, () -> {
+                                            for (Action action : actions) {
+                                                sender.sendMessage(action.getMessage());
+                                            }
+                                        });
+                                });
+                        } else {
+                            plugin.sessions.set(player.getUniqueId(), lookup.getParameters(), logs, session -> {
+                                    plugin.sessions.showPage(player, 0);
+                                });
                         }
-                        player.sendMessage("" + ChatColor.YELLOW + actions.size() + " actions found");
-                        player.setMetadata(Meta.LOOKUP, new FixedMetadataValue(plugin, actions));
-                        player.setMetadata(Meta.LOOKUP_META, new FixedMetadataValue(plugin, meta));
-                        plugin.showActionPage(player, actions, meta, 0);
                     });
-            } else {
-                plugin.getLogger().info("Searching...");
-                search.findListAsync((actions) -> {
-                        consoleSearch = actions;
-                        plugin.getLogger().info("Found " + actions.size() + " results. Use /wm page PAGE");
-                    });
-            }
             return true;
         }
         case "rollback": {
-            if (player != null && !player.hasPermission("watchman.rollback")) {
-                player.sendMessage(ChatColor.RED + "You don't have permission");
-                return true;
-            }
-            if (args.length != 1 && args.length != 2) return false;
-            List<SQLAction> actions;
-            if (player != null) {
-                if (!player.hasMetadata(Meta.LOOKUP)) {
-                    player.sendMessage(ChatColor.RED + "Make a lookup first.");
-                    return true;
-                }
-                actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-            } else {
-                if (consoleSearch == null) {
-                    plugin.getLogger().info("No records available");
-                    return true;
-                }
-                actions = consoleSearch;
+            if (!sender.hasPermission("watchman.rollback")) {
+                throw new CommandWarn("You don't have permission");
             }
             if (args.length == 2) {
-                int index;
+                final long id;
                 try {
-                    index = Integer.parseInt(args[1]);
-                } catch (NumberFormatException nfe) {
-                    index = -1;
+                    id = Long.parseLong(args[1]);
+                } catch (IllegalArgumentException iae) {
+                    throw new CommandWarn("Invalid id: " + args[1]);
                 }
-                if (index < 0 || index >= actions.size()) {
-                    sender.sendMessage(ChatColor.RED + "Invalid lookup index " + args[1]);
-                    return true;
-                }
-                actions = Arrays.asList(actions.get(index));
-                sender.sendMessage(ChatColor.YELLOW + "Attempting to roll back action with id " + index + "...");
-            } else {
-                sender.sendMessage(ChatColor.YELLOW + "Attempting to roll back " + actions.size() + " actions...");
+                requireLog(sender, id, action -> {
+                        if (!action.rollback()) {
+                            sender.sendMessage(join(noSeparators(), text("Rollback failed: ", RED), action.getMessage()));
+                        } else {
+                            sender.sendMessage(join(noSeparators(), text("Rollback succeeded: ", AQUA), action.getMessage()));
+                        }
+                    });
+            } else if (args.length == 1) {
+                if (player == null) throw new CommandWarn("[wm:rollback] Player expected");
+                requireSession(player, session -> {
+                        int count = 0;
+                        for (Action action : session.getActions()) {
+                            if (action.rollback()) count += 1;
+                        }
+                        sender.sendMessage(text("Rolled back " + count + "/" + session.getActions().size()
+                                                + " actions", (count == 0 ? RED : AQUA)));
+                    });
             }
-            int count = 0;
-            for (SQLAction action: actions) {
-                if (action.rollback()) {
-                    count += 1;
-                }
-            }
-            sender.sendMessage("Successfully rolled back " + count + " actions");
-            return true;
-        }
-        case "delete": {
-            if (player != null && !player.hasPermission("watchman.delete")) {
-                player.sendMessage(ChatColor.RED + "You don't have permission");
-                return true;
-            }
-            if (args.length != 1 && args.length != 2) return false;
-            List<SQLAction> actions;
-            if (player != null) {
-                if (!player.hasMetadata(Meta.LOOKUP)) {
-                    player.sendMessage(ChatColor.RED + "Make a lookup first.");
-                    return true;
-                }
-                actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-            } else {
-                if (consoleSearch == null) {
-                    plugin.getLogger().info("No records available");
-                    return true;
-                }
-                actions = consoleSearch;
-            }
-            if (args.length == 2) {
-                int index;
-                try {
-                    index = Integer.parseInt(args[1]);
-                } catch (NumberFormatException nfe) {
-                    index = -1;
-                }
-                if (index < 0 || index >= actions.size()) {
-                    sender.sendMessage(ChatColor.RED + "Invalid lookup index " + args[1]);
-                    return true;
-                }
-                actions = Arrays.asList(actions.get(index));
-                sender.sendMessage(ChatColor.YELLOW + "Attempting to delete action with id " + index + "...");
-            } else {
-                sender.sendMessage(ChatColor.YELLOW + "Attempting to delete " + actions.size() + " actions...");
-            }
-            int count = plugin.database.delete(actions);
-            sender.sendMessage("Successfully deleted " + count + " actions");
             return true;
         }
         case "clear":
-            if (args.length == 1 && player != null) {
-                if (player.hasMetadata(Meta.LOOKUP)) {
-                    player.removeMetadata(Meta.LOOKUP, plugin);
-                    player.removeMetadata(Meta.LOOKUP_META, plugin);
-                    player.sendMessage("Search cleared");
-                } else {
-                    player.sendMessage("You have no stored search");
-                }
-                return true;
-            }
+            if (plugin == null) throw new CommandWarn("[wm:clear] Player expected");
+            plugin.sessions.clear(player.getUniqueId());
+            player.sendMessage(text("Lookup cleared", AQUA));
             return true;
         case "page": {
-            if (args.length != 2) return false;
-            return plugin.watchmanPageCommand.page(sender, args[1]);
+            if (player == null || args.length != 2) return false;
+            return plugin.watchmanPageCommand.page(player, args[1]);
         }
         case "info": {
-            if (player == null) {
-                sender.sendMessage("[watchman:info] player expected");
-                return true;
-            }
             if (args.length != 2) return false;
-            SQLAction action = findLog(player, args[1]);
-            if (action == null) return true;
-            action.showDetails(player, args[1]);
+            final long id;
+            try {
+                id = Long.parseLong(args[1]);
+            } catch (IllegalArgumentException iae) {
+                throw new CommandWarn("Invalid id: " + args[1]);
+            }
+            requireLog(sender, id, action -> {
+                    sender.sendMessage(action.getMessage());
+                });
             return true;
         }
-        case "rank": return rankCommand(player, Arrays.copyOfRange(args, 1, args.length));
         case "debug":
-            sender.sendMessage("Storage: " + plugin.storage.size() + " rows");
+            sender.sendMessage("Queued: " + plugin.actionQueue.size() + " actions");
             sender.sendMessage("Backlog: " + plugin.database.getBacklogSize());
+            sender.sendMessage("Draining: " + plugin.draining);
+            sender.sendMessage("Expiring: " + plugin.expiring);
             return true;
-        case "fake": return fakeCommand(player, Arrays.copyOfRange(args, 1, args.length));
         case "tp": {
-            if (player == null) {
-                sender.sendMessage("[watchman:tp] player expected");
-                return true;
-            }
             if (args.length != 2) return false;
-            SQLAction action = findLog(player, args[1]);
-            if (action == null) return true;
-            Block block = action.getBlock();
-            if (block == null) {
-                player.sendMessage(ChatColor.RED + "Action has no location: " + args[1]);
-                return true;
+            final long id;
+            try {
+                id = Long.parseLong(args[1]);
+            } catch (IllegalArgumentException iae) {
+                throw new CommandWarn("Invalid id: " + args[1]);
             }
-            player.sendMessage(ChatColor.YELLOW + "Teleporting to log " + args[1]);
-            player.teleport(block.getLocation().add(0.5, 0.0, 0.5), TeleportCause.COMMAND);
+            requireLog(sender, id, action -> {
+                    if (!action.isOnThisServer()) {
+                        if (player != null) {
+                            Connect.get().dispatchRemoteCommand(player, "wm tp " + id, action.getServer());
+                        }
+                        return;
+                    }
+                    Location location = action.getLocation();
+                    if (location == null) {
+                        sender.sendMessage(text("Location not found: #" + id));
+                        return;
+                    }
+                    if (player != null) {
+                        player.sendMessage(text("Teleporting to log #" + id, AQUA));
+                        player.teleport(location, TeleportCause.COMMAND);
+                    } else if (sender instanceof RemotePlayer remote) {
+                        remote.bring(plugin, location, p -> {
+                                p.sendMessage(text("Teleported to log #" + id, AQUA));
+                            });
+                    }
+                });
             return true;
         }
-        case "item": case "items": {
-            if (player == null) {
-                sender.sendMessage("[watchman:tp] player expected");
-                return true;
-            }
+        case "open": {
+            if (player == null) throw new CommandWarn("[watchman:open] player expected");
             if (args.length != 2) return false;
-            SQLAction action = findLog(player, args[1]);
-            if (action == null) return true;
-            if (!action.openInventory(player)) {
-                player.sendMessage(ChatColor.RED + "Log has no item(s)!");
-            } else {
-                player.sendMessage(ChatColor.YELLOW + "Viewing items...");
+            final long id;
+            try {
+                id = Long.parseLong(args[1]);
+            } catch (IllegalArgumentException iae) {
+                throw new CommandWarn("Invalid id: " + args[1]);
             }
+            requireLog(player, id, action -> {
+                    if (!action.open(player)) {
+                        player.sendMessage(text("Opening failed: " + id, RED));
+                    }
+                });
             return true;
         }
         default:
@@ -415,35 +310,11 @@ public final class WatchmanCommand implements TabExecutor {
         }
     }
 
-    private SQLAction findLog(Player player, String arg) {
-        int num;
-        try {
-            num = Integer.parseInt(arg);
-        } catch (NumberFormatException nfe) {
-            num = -1;
-        }
-        if (num < 0) {
-            player.sendMessage(ChatColor.RED + "Invalid id: " + arg);
-            return null;
-        }
-        if (!player.hasMetadata(Meta.LOOKUP)) {
-            player.sendMessage(ChatColor.RED + "No records available");
-            return null;
-        }
-        List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-        if (num >= actions.size()) {
-            player.sendMessage(ChatColor.RED + "Invalid action index: " + num);
-            return null;
-        }
-        SQLAction action = actions.get(num);
-        return action;
-    }
-
     @Override
     public List<String> onTabComplete(CommandSender sender, Command comand, String alias, String[] args) {
         String arg = args.length == 0 ? "" : args[args.length - 1];
         if (args.length == 1) {
-            return matchTab(arg, Arrays.asList("tool", "rollback", "clear", "page", "info", "lookup", "tab", "tp", "item"));
+            return matchTab(arg, List.of("tool", "rollback", "clear", "page", "info", "lookup", "tab", "tp", "open"));
         }
         if (args.length > 1 && (args[0].equals("lookup") || args[0].equals("l"))) {
             if (arg.startsWith("action:") || arg.startsWith("a:")) {
@@ -453,16 +324,16 @@ public final class WatchmanCommand implements TabExecutor {
                 String l = arg.split(":", 2)[0];
                 try {
                     int num = Integer.parseInt(arg.split(":", 2)[1]);
-                    return matchTab(arg, Arrays.asList(l + ":" + num, l + ":" + (num * 10), l + ":global", l + ":world"));
+                    return matchTab(arg, List.of(l + ":" + num, l + ":" + (num * 10), l + ":world"));
                 } catch (NumberFormatException nfe) { }
-                return matchTab(arg, Arrays.asList(l + ":" + 8, l + ":global", l + ":world", l + ":we", l + ":worldedit"));
+                return matchTab(arg, List.of(l + ":" + 16, l + ":world", l + ":we", l + ":worldedit"));
             }
             if (arg.startsWith("time:") || arg.startsWith("t:")) {
                 try {
                     long seconds = Time.parseSeconds(arg.split(":", 2)[1]);
-                    return Arrays.asList(arg.split(":", 2)[0] + ":" + Time.formatSeconds(seconds));
+                    return List.of(arg.split(":", 2)[0] + ":" + Time.formatSeconds(seconds));
                 } catch (IllegalArgumentException nfe) {
-                    return Collections.emptyList();
+                    return List.of();
                 }
             }
             if (arg.startsWith("player:") || arg.startsWith("p:")) {
@@ -519,26 +390,11 @@ public final class WatchmanCommand implements TabExecutor {
                     .limit(128)
                     .collect(Collectors.toList());
             }
-            return matchTab(arg, Arrays.asList("player:", "action:", "world:", "center:",
-                                               "radius:", "item:", "block:", "entity:", "time:"));
+            return matchTab(arg, List.of("player:", "action:", "world:",
+                                         "radius:", "item:", "block:", "entity:", "time:"));
         }
         if (args.length == 2 && args[0].equals("page")) {
-            List<SQLAction> actions;
-            int pageLen;
-            if (sender instanceof Player) {
-                Player player = (Player) sender;
-                if (!player.hasMetadata(Meta.LOOKUP)) return Collections.emptyList();
-                actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-                pageLen = 5;
-            } else {
-                if (consoleSearch == null) return Collections.emptyList();
-                actions = consoleSearch;
-                pageLen = 10;
-            }
-            int totalPageCount = (actions.size() - 1) / pageLen + 1;
-            List<String> ls = new ArrayList(totalPageCount);
-            for (int i = 0; i < totalPageCount; i += 1) ls.add("" + (i + 1));
-            return matchTab(arg, ls);
+            return List.of();
         }
         return null;
     }
@@ -551,84 +407,27 @@ public final class WatchmanCommand implements TabExecutor {
         return args.filter(a -> a.startsWith(arg)).collect(Collectors.toList());
     }
 
-    boolean rankCommand(Player player, String[] args) {
-        if (args.length != 0) return false;
-        Cuboid cuboid = WorldEdit.getSelection(player);
-        if (cuboid == null) {
-            player.sendMessage(ChatColor.RED + "No selection!");
-            return true;
-        }
-        String sql = "SELECT `actor_name`, `action`, count(*) c FROM `" + plugin.database.getTable(SQLAction.class).getTableName() + "`"
-            + " WHERE `world` = '" + player.getWorld().getName() + "'"
-            + " AND `x` BETWEEN " + cuboid.ax + " AND " + cuboid.bx
-            + " AND `z` BETWEEN " + cuboid.az + " AND " + cuboid.bz
-            + " AND `y` BETWEEN " + cuboid.ay + " AND " + cuboid.by
-            + " AND `actor_name` IS NOT NULL"
-            + " AND `action` IN ("
-            + ActionType.inCategory(ActionType.Category.BLOCK).stream().map(s -> "'" + s + "'").collect(Collectors.joining(", "))
-            + ")"
-            + " GROUP BY `actor_name`, `action`"
-            + " ORDER BY `c` ASC";
-        plugin.database.executeQueryAsync(sql, resultSet -> {
-                int total = 0;
-                try {
-                    while (resultSet.next()) {
-                        String name = resultSet.getString("actor_name");
-                        String action = resultSet.getString("action");
-                        int count = resultSet.getInt("c");
-                        player.sendMessage(" " + ChatColor.YELLOW + count
-                                           + " " + ChatColor.RED + action
-                                           + " " + ChatColor.WHITE + name);
-                        total += 1;
-                    }
-                    resultSet.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
+    private void requireLog(CommandSender sender, long id, Consumer<Action> callback) {
+        plugin.database.scheduleAsyncTask(() -> {
+                SQLLog log = plugin.database.find(SQLLog.class)
+                    .eq("id", id)
+                    .findUnique();
+                if (log == null) {
+                    Bukkit.getScheduler().runTask(plugin, () -> sender.sendMessage(text("Log not found: " + id, RED)));
+                    return;
                 }
-                player.sendMessage("Total " + total);
+                Action action = new Action().fetch(log);
+                Bukkit.getScheduler().runTask(plugin, () -> callback.accept(action));
             });
-        return true;
     }
 
-    boolean fakeCommand(Player player, String[] args) {
-        if (args.length != 0) return false;
-        Cuboid cuboid = WorldEdit.getSelection(player);
-        if (cuboid == null) {
-            player.sendMessage(ChatColor.RED + "No selection!");
-            return true;
-        }
-        World world = player.getWorld();
-        Set<Vec3i> ignore = new HashSet<>();
-        plugin.database.find(SQLAction.class)
-            .eq("world", world.getName())
-            .between("x", cuboid.ax, cuboid.bx)
-            .between("y", cuboid.ay, cuboid.by)
-            .between("z", cuboid.az, cuboid.bz)
-            .in("action", ActionType.inCategory(ActionType.Category.BLOCK))
-            .findListAsync(list -> {
-                    if (!player.isOnline() || !player.getWorld().equals(world)) return;
-                    for (SQLAction row : list) {
-                        if (ignore.contains(row.getVector())) continue;
-                        if (row.getBlock().getType() == row.getNewBlockData().getMaterial()) {
-                            ignore.add(row.getVector());
-                        }
-                    }
-                    int count = 0;
-                    for (Vec3i vec : cuboid.enumerate()) {
-                        if (ignore.contains(vec)) continue;
-                        Block block = vec.toBlock(world);
-                        if (block.isEmpty()) continue;
-                        plugin.store(new SQLAction()
-                                     .setNow().setActionType(ActionType.BLOCK_FAKE)
-                                     .setLocation(block)
-                                     .setOldState(Material.AIR.createBlockData())
-                                     .setNewState(block)
-                                     .setActorTypeName("fake"));
-                        count += 1;
-                    }
-                    player.sendMessage(count + " fake blocks stored!");
-                });
-        player.sendMessage("Searching...");
-        return true;
+    private void requireSession(Player player, Consumer<LookupSession> callback) {
+        plugin.sessions.get(player.getUniqueId(), session -> {
+                if (session == null || session.getActions().isEmpty()) {
+                    player.sendMessage(text("You do not have a lookup stored", RED));
+                    return;
+                }
+                callback.accept(session);
+            });
     }
 }

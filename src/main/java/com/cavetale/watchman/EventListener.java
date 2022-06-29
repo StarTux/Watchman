@@ -2,15 +2,17 @@ package com.cavetale.watchman;
 
 import com.cavetale.core.event.block.PlayerBreakBlockEvent;
 import com.cavetale.core.event.block.PlayerChangeBlockEvent;
-import com.cavetale.sidebar.PlayerSidebarEvent;
-import com.cavetale.sidebar.Priority;
+import com.cavetale.core.event.hud.PlayerHudEvent;
+import com.cavetale.core.event.hud.PlayerHudPriority;
+import com.cavetale.watchman.action.Action;
+import com.cavetale.watchman.action.ActionType;
+import com.cavetale.watchman.lookup.BlockLookup;
+import com.cavetale.watchman.sql.SQLLog;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import io.papermc.paper.event.block.PlayerShearBlockEvent;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -63,7 +65,7 @@ import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.metadata.FixedMetadataValue;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
 public final class EventListener implements Listener {
@@ -74,10 +76,10 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockBreak(BlockBreakEvent event) {
+    private void onBlockBreak(BlockBreakEvent event) {
         long now = System.currentTimeMillis();
-        plugin.store(new SQLAction()
-                     .time(now).setActionType(ActionType.BLOCK_BREAK)
+        plugin.store(new Action()
+                     .time(now).setActionType(ActionType.BREAK)
                      .setMaterial(event.getBlock().getType())
                      .setActorPlayer(event.getPlayer())
                      .setOldState(event.getBlock())
@@ -85,25 +87,24 @@ public final class EventListener implements Listener {
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
         // BlockDestroyEvent is unreliable, will always call the top block never the bottom one
         if (otherHalf != null) {
-            plugin.store(new SQLAction()
-                         .time(now).setActionType(ActionType.BLOCK_BREAK)
+            plugin.store(new Action()
+                         .time(now).setActionType(ActionType.BREAK)
                          .setMaterial(otherHalf.getType())
                          .setActorPlayer(event.getPlayer())
                          .setOldState(otherHalf)
                          .setNewState(Material.AIR));
-
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockPlace(BlockPlaceEvent event) {
+    private void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
         long now = System.currentTimeMillis();
         if (event instanceof BlockMultiPlaceEvent) {
             BlockMultiPlaceEvent multiEvent = (BlockMultiPlaceEvent) event;
             for (BlockState replacedState : multiEvent.getReplacedBlockStates()) {
-                plugin.store(new SQLAction()
-                             .time(now).setActionType(ActionType.BLOCK_PLACE)
+                plugin.store(new Action()
+                             .time(now).setActionType(ActionType.PLACE)
                              .setMaterial(replacedState.getType())
                              .setActorPlayer(player)
                              .setOldState(replacedState)
@@ -111,8 +112,8 @@ public final class EventListener implements Listener {
             }
             return;
         }
-        plugin.store(new SQLAction()
-                     .time(now).setActionType(ActionType.BLOCK_PLACE)
+        plugin.store(new Action()
+                     .time(now).setActionType(ActionType.PLACE)
                      .setMaterial(event.getBlockPlaced().getType())
                      .setActorPlayer(event.getPlayer())
                      .setOldState(event.getBlockReplacedState())
@@ -120,32 +121,32 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+    private void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
-        SQLAction row = new SQLAction()
-            .setNow().setActionType(ActionType.BUCKET_EMPTY)
+        Action action = new Action()
+            .setNow().setActionType(ActionType.PLACE)
             .setActorPlayer(event.getPlayer())
             .setOldState(block);
-        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(row.setMaterial(block.getType()).setNewState(block)));
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setMaterial(block.getType()).setNewState(block)));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerBucketFill(PlayerBucketFillEvent event) {
+    private void onPlayerBucketFill(PlayerBucketFillEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
-        SQLAction row = new SQLAction()
-            .setNow().setActionType(ActionType.BUCKET_FILL)
+        Action action = new Action()
+            .setNow().setActionType(ActionType.BREAK)
             .setMaterial(block.getType())
             .setActorPlayer(event.getPlayer())
             .setOldState(block);
-        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(row.setNewState(block)));
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setNewState(block)));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerBlockShear(PlayerShearBlockEvent event) {
-        SQLAction action = new SQLAction()
-            .setNow().setActionType(ActionType.BLOCK_SHEAR)
+    private void onPlayerBlockShear(PlayerShearBlockEvent event) {
+        Action action = new Action()
+            .setNow().setActionType(ActionType.PLACE)
             .setActorPlayer(event.getPlayer())
             .setOldState(event.getBlock());
         Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setNewState(event.getBlock())));
@@ -153,84 +154,82 @@ public final class EventListener implements Listener {
 
     // For now, we only log player caused entity deaths.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onEntityDeath(EntityDeathEvent event) {
+    private void onEntityDeath(EntityDeathEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.getKiller() != null) {
-            plugin.store(new SQLAction()
-                         .setNow().setActionType(ActionType.ENTITY_KILL)
-                         .setEntityType(entity.getType())
+            plugin.store(new Action()
+                         .setNow().setActionType(ActionType.KILL)
                          .setActorPlayer(entity.getKiller())
-                         .setOldState(entity));
+                         .location(entity.getLocation())
+                         .setEntity(entity));
             return;
         }
         EntityDamageEvent lastDamageCause = entity.getLastDamageCause();
         if (lastDamageCause instanceof EntityDamageByEntityEvent) {
             EntityDamageByEntityEvent edbee = (EntityDamageByEntityEvent) lastDamageCause;
-            plugin.store(new SQLAction()
-                         .setNow().setActionType(ActionType.ENTITY_KILL)
-                         .setEntityType(entity.getType())
+            plugin.store(new Action()
+                         .setNow().setActionType(ActionType.KILL)
                          .setActorEntity(edbee.getDamager())
-                         .setOldState(entity));
+                         .location(entity.getLocation())
+                         .setEntity(entity));
             return;
         } else if (lastDamageCause instanceof EntityDamageByBlockEvent) {
             EntityDamageByBlockEvent edbbe = (EntityDamageByBlockEvent) lastDamageCause;
-            plugin.store(new SQLAction()
-                         .setNow().setActionType(ActionType.ENTITY_KILL)
-                         .setEntityType(entity.getType())
+            plugin.store(new Action()
+                         .setNow().setActionType(ActionType.KILL)
                          .setActorBlock(edbbe.getDamager())
-                         .setOldState(entity));
+                         .location(entity.getLocation())
+                         .setEntity(entity));
             return;
         } else if (lastDamageCause != null) {
-            SQLAction row = new SQLAction()
-                .setNow().setActionType(ActionType.ENTITY_KILL)
-                .setEntityType(entity.getType())
-                .setActorTypeName("unknown")
-                .setOldState(entity);
-            row.setActorName(lastDamageCause.getCause().name().toLowerCase());
-            plugin.store(row);
+            Action action = new Action()
+                .setNow().setActionType(ActionType.KILL)
+                .setActorUnknown()
+                .location(entity.getLocation())
+                .setEntity(entity);
+            plugin.store(action);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerDeath(PlayerDeathEvent event) {
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.PLAYER_DEATH)
+    private void onPlayerDeath(PlayerDeathEvent event) {
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.DEATH)
                      .setActorPlayer(event.getEntity())
-                     .setLocation(event.getEntity().getLocation()));
+                     .location(event.getEntity().getLocation()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerJoin(PlayerJoinEvent event) {
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.PLAYER_JOIN)
+    private void onPlayerJoin(PlayerJoinEvent event) {
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.JOIN)
                      .setActorPlayer(event.getPlayer())
-                     .setOldState(event.getPlayer().getLocation()));
+                     .location(event.getPlayer().getLocation()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerQuit(PlayerQuitEvent event) {
-        plugin.exit(event.getPlayer());
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.PLAYER_QUIT)
+    private void onPlayerQuit(PlayerQuitEvent event) {
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.QUIT)
                      .setActorPlayer(event.getPlayer())
-                     .setOldState(event.getPlayer().getLocation()));
+                     .location(event.getPlayer().getLocation()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onEntityExplode(EntityExplodeEvent event) {
+    private void onEntityExplode(EntityExplodeEvent event) {
         for (Block block: event.blockList()) {
-            plugin.store(new SQLAction()
-                         .setNow().setActionType(ActionType.BLOCK_EXPLODE)
+            plugin.store(new Action()
+                         .setNow().setActionType(ActionType.BREAK)
                          .setActorEntity(event.getEntity())
                          .setOldState(block));
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockExplode(BlockExplodeEvent event) {
+    private void onBlockExplode(BlockExplodeEvent event) {
         for (Block block: event.blockList()) {
-            plugin.store(new SQLAction()
-                         .setNow().setActionType(ActionType.BLOCK_EXPLODE)
+            plugin.store(new Action()
+                         .setNow().setActionType(ActionType.BREAK)
                          .setMaterial(block.getType())
                          .setActorBlock(event.getBlock())
                          .setOldState(block));
@@ -238,60 +237,60 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerDropItem(PlayerDropItemEvent event) {
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.ITEM_DROP)
+    private void onPlayerDropItem(PlayerDropItemEvent event) {
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.DROP)
                      .setMaterial(event.getItemDrop().getItemStack().getType())
                      .setActorPlayer(event.getPlayer())
-                     .setLocation(event.getItemDrop().getLocation())
-                     .setNewState(event.getItemDrop().getItemStack()));
+                     .location(event.getItemDrop().getLocation())
+                     .setItemStack(event.getItemDrop().getItemStack()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onEntityPickupItem(EntityPickupItemEvent event) {
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.ITEM_PICKUP)
+    private void onEntityPickupItem(EntityPickupItemEvent event) {
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.PICKUP)
                      .setMaterial(event.getItem().getItemStack().getType())
                      .setActorEntity(event.getEntity())
-                     .setLocation(event.getItem().getLocation())
-                     .setOldState(event.getItem().getItemStack()));
+                     .location(event.getItem().getLocation())
+                     .setItemStack(event.getItem().getItemStack()));
     }
 
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
-    void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+    private void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
         if (player.hasPermission("watchman.privacy.command")) return;
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.COMMAND)
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.CHAT)
                      .setActorPlayer(player)
-                     .setLocation(event.getPlayer().getLocation())
-                     .setNewState(event.getMessage()));
+                     .location(event.getPlayer().getLocation())
+                     .setChatMessage(event.getMessage()));
     }
 
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
-    void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
+    private void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         if (player.hasPermission("watchman.privacy.chat")) return;
         Location location = player.getLocation();
         String message = event.getMessage();
         Bukkit.getScheduler().runTask(plugin, () -> {
-                plugin.store(new SQLAction()
+                plugin.store(new Action()
                              .setNow().setActionType(ActionType.CHAT)
                              .setActorPlayer(player)
-                             .setLocation(location)
-                             .setNewState(message));
+                             .location(location)
+                             .setChatMessage(message));
             });
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onInventoryOpen(InventoryOpenEvent event) {
+    private void onInventoryOpen(InventoryOpenEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
         Player player = (Player) event.getPlayer();
         InventoryHolder holder = event.getInventory().getHolder();
         if (holder instanceof BlockInventoryHolder) {
             Block block = ((BlockInventoryHolder) holder).getBlock();
-            plugin.store(new SQLAction()
-                         .setNow().setActionType(ActionType.INVENTORY_OPEN)
+            plugin.store(new Action()
+                         .setNow().setActionType(ActionType.OPEN)
                          .setActorPlayer(player)
                          .setOldState(block)
                          .setMaterial(block.getType()));
@@ -301,8 +300,8 @@ public final class EventListener implements Listener {
             InventoryHolder left = doubleChest.getLeftSide();
             if (left instanceof BlockInventoryHolder) {
                 Block block = ((BlockInventoryHolder) left).getBlock();
-                plugin.store(new SQLAction()
-                             .time(now).setActionType(ActionType.INVENTORY_OPEN)
+                plugin.store(new Action()
+                             .time(now).setActionType(ActionType.OPEN)
                              .setActorPlayer(player)
                              .setOldState(block)
                              .setMaterial(block.getType()));
@@ -310,8 +309,8 @@ public final class EventListener implements Listener {
             InventoryHolder right = doubleChest.getRightSide();
             if (right instanceof BlockInventoryHolder) {
                 Block block = ((BlockInventoryHolder) right).getBlock();
-                plugin.store(new SQLAction()
-                             .time(now).setActionType(ActionType.INVENTORY_OPEN)
+                plugin.store(new Action()
+                             .time(now).setActionType(ActionType.OPEN)
                              .setActorPlayer(player)
                              .setOldState(block)
                              .setMaterial(block.getType()));
@@ -320,56 +319,31 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    void onPlayerInteract(PlayerInteractEvent event) {
+    private void onPlayerInteract(PlayerInteractEvent event) {
+        if (!plugin.sessions.wmtool(event.getPlayer())) return;
         if (event.getHand() != EquipmentSlot.HAND) return;
-        if (!event.getPlayer().hasMetadata(Meta.TOOL_KEY)) return;
-        if (!event.getPlayer().hasPermission("watchman.tool")) return;
+        final Player player = event.getPlayer();
+        if (!player.hasPermission("watchman.tool")) return;
+        final Block block = switch (event.getAction()) {
+        case LEFT_CLICK_BLOCK -> event.getClickedBlock();
+        case RIGHT_CLICK_BLOCK -> event.getClickedBlock().getRelative(event.getBlockFace());
+        default -> null;
+        };
+        if (block == null) return;
         event.setCancelled(true);
-        Block block;
-        switch (event.getAction()) {
-        case LEFT_CLICK_BLOCK:
-            block = event.getClickedBlock();
-            break;
-        case RIGHT_CLICK_BLOCK:
-            block = event.getClickedBlock().getRelative(event.getBlockFace());
-            break;
-        default:
-            return;
-        }
-        Player player = event.getPlayer();
-        String world = block.getWorld().getName();
-        int x = block.getX();
-        int y = block.getY();
-        int z = block.getZ();
-        LookupMeta meta = new LookupMeta();
-        meta.world = world;
-        meta.location = new LookupMeta.Vec(x, y, z);
-        player.removeMetadata(Meta.LOOKUP, plugin);
-        player.removeMetadata(Meta.LOOKUP_META, plugin);
-        List<String> inCategories = player.hasPermission("watchman.tool.detective")
-            ? ActionType.inCategories(ActionType.Category.BLOCK,
-                                      ActionType.Category.ENTITY,
-                                      ActionType.Category.INVENTORY)
-            : ActionType.inCategories(ActionType.Category.BLOCK);
-        plugin.database.find(SQLAction.class)
-            .eq("world", world).eq("x", x).eq("y", y).eq("z", z)
-            .in("action", inCategories)
-            .orderByDescending("id")
-            .findListAsync((actions) -> {
-                    if (!player.isValid()) return;
-                    if (actions.isEmpty()) {
-                        player.sendMessage(ChatColor.RED + String.format("No actions to show at %d,%d,%d.", x, y, z));
-                        return;
-                    }
-                    player.sendMessage(ChatColor.YELLOW + String.format("%d actions at %d,%d,%d.", actions.size(), x, y, z));
-                    player.setMetadata(Meta.LOOKUP, new FixedMetadataValue(plugin, actions));
-                    player.setMetadata(Meta.LOOKUP_META, new FixedMetadataValue(plugin, meta));
-                    plugin.showActionPage(player, actions, meta, 0);
+        final boolean detective = player.hasPermission("watchman.tool.detective");
+        BlockLookup lookup = BlockLookup.of(block);
+        lookup.accept(plugin.database.find(SQLLog.class))
+            .findListAsync(logs -> {
+                    if (!detective) logs.removeIf(l -> ActionType.ofIndex(l.getActionType()).category != ActionType.Category.BLOCK);
+                    plugin.sessions.set(player.getUniqueId(), lookup.getParameters(), logs, session -> {
+                            plugin.sessions.showPage(player, 0);
+                        });
                 });
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onEntityChangeBlock(EntityChangeBlockEvent event) {
+    private void onEntityChangeBlock(EntityChangeBlockEvent event) {
         BlockData oldBlockData = event.getBlock().getBlockData();
         BlockData newBlockData = event.getBlockData();
         // Here it gets a little complicated because this could be a
@@ -378,41 +352,40 @@ public final class EventListener implements Listener {
             ? newBlockData
             : oldBlockData;
         long now = System.currentTimeMillis();
-        plugin.store(new SQLAction()
-                     .time(now).setActionType(ActionType.BLOCK_CHANGE)
+        plugin.store(new Action()
+                     .time(now).setActionType(ActionType.PLACE)
                      .setMaterial(nonAirBlockData.getMaterial())
                      .setActorEntity(event.getEntity())
                      .setOldState(event.getBlock())
                      .setNewState(newBlockData));
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), nonAirBlockData);
         if (otherHalf != null) {
-            plugin.store(new SQLAction()
-                         .time(now).setActionType(ActionType.BLOCK_CHANGE)
+            plugin.store(new Action()
+                         .time(now).setActionType(ActionType.PLACE)
                          .setMaterial(nonAirBlockData.getMaterial())
                          .setActorEntity(event.getEntity())
-                         .setLocation(otherHalf)
-                         .setOldState(otherHalf.getBlockData())
+                         .block(otherHalf)
+                         .setOldState(otherHalf)
                          .setNewState(Blocks.toOtherHalf(newBlockData)));
-
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockGrow(BlockGrowEvent event) {
+    private void onBlockGrow(BlockGrowEvent event) {
         if (!plugin.eventBlockGrow) return;
         long now = System.currentTimeMillis();
-        plugin.store(new SQLAction()
-                     .time(now).setActionType(ActionType.BLOCK_GROW)
+        plugin.store(new Action()
+                     .time(now).setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
-                     .setActorTypeName("nature")
+                     .setActorNature()
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getNewState().getBlockData());
         if (otherHalf != null) {
-            plugin.store(new SQLAction()
-                         .time(now).setActionType(ActionType.BLOCK_GROW)
+            plugin.store(new Action()
+                         .time(now).setActionType(ActionType.PLACE)
                          .setMaterial(event.getNewState().getType())
-                         .setActorTypeName("nature")
+                         .setActorNature()
                          .setOldState(otherHalf)
                          .setNewState(Blocks.toOtherHalf(event.getNewState().getBlockData())));
 
@@ -420,21 +393,21 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockForm(BlockFormEvent event) {
+    private void onBlockForm(BlockFormEvent event) {
         if (!plugin.eventBlockForm) return;
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.BLOCK_FORM)
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
-                     .setActorTypeName("nature")
+                     .setActorNature()
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onEntityBlockForm(EntityBlockFormEvent event) {
+    private void onEntityBlockForm(EntityBlockFormEvent event) {
         if (!plugin.eventEntityBlockForm) return;
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.BLOCK_FORM)
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
                      .setActorEntity(event.getEntity())
                      .setOldState(event.getBlock())
@@ -442,58 +415,58 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockSpread(BlockSpreadEvent event) {
+    private void onBlockSpread(BlockSpreadEvent event) {
         if (!plugin.eventBlockSpread) return;
-        plugin.store(new SQLAction()
-                     .setNow().setActionType(ActionType.BLOCK_FORM)
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
-                     .setActorTypeName("nature")
+                     .setActorNature()
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onStructureGrow(StructureGrowEvent event) {
+    private void onStructureGrow(StructureGrowEvent event) {
         Player player = event.getPlayer();
         for (BlockState state : event.getBlocks()) {
-            SQLAction action = new SQLAction()
-                .setNow().setActionType(ActionType.BLOCK_GROW)
+            Action action = new Action()
+                .setNow().setActionType(ActionType.PLACE)
                 .setMaterial(state.getType())
                 .setOldState(state.getBlock())
                 .setNewState(state);
             if (player != null) {
                 action.setActorPlayer(player);
             } else {
-                action.setActorTypeName("nature");
+                action.setActorNature();
             }
             plugin.store(action);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockDestroy(BlockDestroyEvent event) {
+    private void onBlockDestroy(BlockDestroyEvent event) {
         long now = System.currentTimeMillis();
-        plugin.store(new SQLAction()
-                     .time(now).setActionType(ActionType.BLOCK_DESTROY)
+        plugin.store(new Action()
+                     .time(now).setActionType(ActionType.BREAK)
                      .setMaterial(event.getBlock().getType())
-                     .setActorTypeName("unknown")
+                     .setActorUnknown()
                      .setOldState(event.getBlock())
                      .setNewState(event.getNewState()));
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
         if (otherHalf != null) {
-            plugin.store(new SQLAction()
-                         .time(now).setActionType(ActionType.BLOCK_DESTROY)
+            plugin.store(new Action()
+                         .time(now).setActionType(ActionType.BREAK)
                          .setMaterial(event.getBlock().getType())
-                         .setActorTypeName("unknown")
+                         .setActorUnknown()
                          .setOldState(otherHalf)
                          .setNewState(event.getBlock().getBlockData()));
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerBreakBlock(PlayerBreakBlockEvent event) {
-        plugin.store(new SQLAction().setNow()
-                     .setActionType(ActionType.BLOCK_BREAK)
+    private void onPlayerBreakBlock(PlayerBreakBlockEvent event) {
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.BREAK)
                      .setMaterial(event.getBlock().getType())
                      .setActorPlayer(event.getPlayer())
                      .setOldState(event.getBlock())
@@ -501,9 +474,9 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerChangeBlock(PlayerChangeBlockEvent event) {
-        plugin.store(new SQLAction().setNow()
-                     .setActionType(ActionType.BLOCK_CHANGE)
+    private void onPlayerChangeBlock(PlayerChangeBlockEvent event) {
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewBlockData().getMaterial())
                      .setActorPlayer(event.getPlayer())
                      .setOldState(event.getOldBlockState())
@@ -511,11 +484,11 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onBlockFromTo(BlockFromToEvent event) {
+    private void onBlockFromTo(BlockFromToEvent event) {
         Block block = event.getToBlock();
-        SQLAction row = new SQLAction()
-            .setNow().setActionType(ActionType.BLOCK_FORM)
-            .setActorTypeName("nature")
+        Action row = new Action()
+            .setNow().setActionType(ActionType.PLACE)
+            .setActorNature()
             .setOldState(block);
         Bukkit.getScheduler().runTask(plugin, () -> {
                 row.setMaterial(block.getType())
@@ -525,76 +498,70 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onEntityPlace(EntityPlaceEvent event) {
-        plugin.store(new SQLAction().setNow()
-                     .setActionType(ActionType.ENTITY_PLACE)
+    private void onEntityPlace(EntityPlaceEvent event) {
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.SPAWN)
                      .setActorPlayer(event.getPlayer())
-                     .setLocation(event.getEntity().getLocation())
-                     .setNewState(event.getEntity())
-                     .setEntityType(event.getEntity().getType()));
+                     .location(event.getEntity().getLocation())
+                     .setEntity(event.getEntity()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onVehicleDestroy(VehicleDestroyEvent event) {
-        plugin.store(new SQLAction().setNow()
-                     .setActionType(ActionType.ENTITY_KILL)
+    private void onVehicleDestroy(VehicleDestroyEvent event) {
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.KILL)
                      .setActorEntity(event.getAttacker())
-                     .setLocation(event.getVehicle().getLocation())
-                     .setOldState(event.getVehicle())
-                     .setEntityType(event.getVehicle().getType()));
+                     .location(event.getVehicle().getLocation())
+                     .setEntity(event.getVehicle()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onHangingPlace(HangingPlaceEvent event) {
-        plugin.store(new SQLAction().setNow()
-                     .setActionType(ActionType.ENTITY_PLACE)
+    private void onHangingPlace(HangingPlaceEvent event) {
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.SPAWN)
                      .setActorPlayer(event.getPlayer())
-                     .setLocation(event.getEntity().getLocation())
-                     .setNewState(event.getEntity())
-                     .setEntityType(event.getEntity().getType()));
+                     .location(event.getEntity().getLocation())
+                     .setEntity(event.getEntity()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onHangingBreak(HangingBreakEvent event) {
+    private void onHangingBreak(HangingBreakEvent event) {
         if (event instanceof HangingBreakByEntityEvent) return;
-        plugin.store(new SQLAction().setNow()
-                     .setActionType(ActionType.ENTITY_KILL)
-                     .setActorTypeName(event.getCause().name().toLowerCase())
-                     .setLocation(event.getEntity().getLocation())
-                     .setOldState(event.getEntity())
-                     .setEntityType(event.getEntity().getType()));
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.KILL)
+                     .setActorUnknown()
+                     .location(event.getEntity().getLocation())
+                     .setEntity(event.getEntity()));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
-        plugin.store(new SQLAction().setNow()
-                     .setActionType(ActionType.ENTITY_KILL)
+    private void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.KILL)
                      .setActorEntity(event.getRemover())
-                     .setLocation(event.getEntity().getLocation())
-                     .setOldState(event.getEntity())
-                     .setEntityType(event.getEntity().getType()));
+                     .location(event.getEntity().getLocation())
+                     .setEntity(event.getEntity()));
     }
 
     // Listen for ItemFrame edits
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+    private void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (event.getEntity() instanceof ItemFrame) {
             ItemFrame itemFrame = (ItemFrame) event.getEntity();
             if (itemFrame.isFixed()) return;
             ItemStack item = itemFrame.getItem();
-            if (item == null || item.getType() == Material.AIR) return;
-            plugin.store(new SQLAction().setNow()
-                         .setActionType(ActionType.ITEM_REMOVE)
+            if (item == null || item.getType().isAir()) return;
+            plugin.store(new Action().setNow()
+                         .setActionType(ActionType.ACCESS)
                          .setActorEntity(event.getDamager())
-                         .setLocation(itemFrame.getLocation())
-                         .setOldState(item)
-                         .setMaterial(item.getType()));
+                         .location(itemFrame.getLocation())
+                         .setItemStack(item));
         }
     }
 
     // Listen for ItemFrame edits
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+    private void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getRightClicked() instanceof ItemFrame) {
             ItemFrame itemFrame = (ItemFrame) event.getRightClicked();
             if (itemFrame.isFixed()) return;
@@ -602,55 +569,55 @@ public final class EventListener implements Listener {
             if (item != null && item.getType() != Material.AIR) return;
             Player player = event.getPlayer();
             item = player.getInventory().getItemInMainHand();
-            if (item == null || item.getType() == Material.AIR) {
+            if (item == null || item.getType().isAir()) {
                 item = player.getInventory().getItemInOffHand();
-                if (item == null || item.getType() == Material.AIR) return;
+                if (item == null || item.getType().isAir()) return;
             }
-            plugin.store(new SQLAction().setNow()
-                         .setActionType(ActionType.ITEM_INSERT)
+            plugin.store(new Action().setNow()
+                         .setActionType(ActionType.ACCESS)
                          .setActorPlayer(player)
-                         .setLocation(itemFrame.getLocation())
-                         .setNewState(item)
-                         .setMaterial(item.getType()));
+                         .location(itemFrame.getLocation())
+                         .setItemStack(item));
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
+    private void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
         ItemStack playerItem = event.getPlayerItem();
         ItemStack armorStandItem = event.getArmorStandItem();
-        if (playerItem != null && playerItem.getType() == Material.AIR) playerItem = null;
-        if (armorStandItem != null && armorStandItem.getType() == Material.AIR) armorStandItem = null;
+        if (playerItem != null && playerItem.getType().isAir()) playerItem = null;
+        if (armorStandItem != null && armorStandItem.getType().isAir()) armorStandItem = null;
         if (playerItem == null && armorStandItem == null) return;
         Player player = event.getPlayer();
         ArmorStand armorStand = event.getRightClicked();
-        SQLAction row = new SQLAction().setNow()
+        Action row = new Action().setNow()
             .setActorPlayer(player)
-            .setLocation(armorStand.getLocation());
+            .location(armorStand.getLocation());
         if (playerItem != null && armorStandItem != null) { // sawp
-            row.setActionType(ActionType.ITEM_SWAP)
-                .setOldState(armorStandItem)
-                .setNewState(playerItem)
-                .setMaterial(armorStandItem.getType());
+            row.setActionType(ActionType.ACCESS)
+                .setItemStack(armorStandItem);
+            //.setItemStack(playerItem);
         } else if (playerItem != null) { // insert
-            row.setActionType(ActionType.ITEM_INSERT)
-                .setNewState(playerItem)
-                .setMaterial(playerItem.getType());
+            row.setActionType(ActionType.ACCESS)
+                .setItemStack(playerItem);
         } else if (armorStandItem != null) { // remove
-            row.setActionType(ActionType.ITEM_REMOVE)
-                .setNewState(armorStandItem)
-                .setMaterial(armorStandItem.getType());
+            row.setActionType(ActionType.ACCESS)
+                .setItemStack(armorStandItem);
         }
         plugin.store(row);
     }
 
+    private static final Component WMTOOL_NOTIFICATION = Component.text("/wmtool", YELLOW)
+        .append(Component.text(" enabled!", GRAY));
+
     @EventHandler
-    protected void onPlayerSidebar(PlayerSidebarEvent event) {
-        if (event.getPlayer().hasMetadata(Meta.TOOL_KEY)) {
-            event.add(plugin, Priority.HIGH,
-                      Component.text().content("/wmtool").color(NamedTextColor.YELLOW)
-                      .append(Component.text(" enabled!", NamedTextColor.GRAY))
-                      .build());
+    private void onPlayerHud(PlayerHudEvent event) {
+        if (plugin.sessions.wmtool(event.getPlayer())) {
+            event.bossbar(PlayerHudPriority.HIGHEST,
+                          WMTOOL_NOTIFICATION,
+                          BossBar.Color.YELLOW,
+                          BossBar.Overlay.PROGRESS,
+                          1.0f);
         }
     }
 }

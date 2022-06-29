@@ -2,13 +2,13 @@ main: com.cavetale.watchman.WatchmanPlugin
 name: Watchman
 
 version: 0.1
-api-version: 1.18
+api-version: 1.19
 
 description: Player action logging tool
 author: StarTux
 website: http://cavetale.com
 
-depend: [Core, Dirty, SQL, PlayerCache, Sidebar]
+depend: [Core, SQL, PlayerCache]
 softdepend: [WorldEdit]
 
 commands:
@@ -24,7 +24,7 @@ commands:
       /wm page <page> - View search page
       /wm info <id> - Detailed search result info
       /wm tp <id> - Teleport to log
-      /wm item <id> - View log item(s)
+      /wm open <id> - Open log inventory
       /wm lookup ARGS... - Search for records
         (a)ction:ACTION - Action type
         (p)layer:NAME - Player search
@@ -36,10 +36,7 @@ commands:
         (c)enter:X,Y - Center location
         (w)orld:WORLD - World name
       /wm rollback [id] - Rollback looked up records
-      /wm delete - Delete looked up records
-      /wm rank - Rank players by actions in WE selection
       /wm rewind [seconds] [flags...] - Rewind WE selection
-      /wm fake - Add missing blocks for a nice rewind
       /wm reload - Reload configuration
 
   wmtool:

@@ -3,15 +3,20 @@ package com.cavetale.watchman;
 import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.font.Unicode;
+import com.cavetale.watchman.action.Action;
+import com.cavetale.watchman.action.ActionType;
+import com.cavetale.watchman.session.LookupSession;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public final class RewindCommand extends AbstractCommand<WatchmanPlugin> {
     private Location center;
@@ -44,7 +49,7 @@ public final class RewindCommand extends AbstractCommand<WatchmanPlugin> {
             try {
                 duration = Integer.parseInt(args[0]);
             } catch (NumberFormatException nfe) {
-                player.sendMessage(ChatColor.RED + "Bad duration (seconds): " + args[0]);
+                player.sendMessage(text("Bad duration (seconds): " + args[0], RED));
                 return true;
             }
         } else {
@@ -58,45 +63,31 @@ public final class RewindCommand extends AbstractCommand<WatchmanPlugin> {
             try {
                 flag = RewindTask.Flag.valueOf(arg.toUpperCase().replace("-", "_"));
             } catch (IllegalArgumentException iae) {
-                player.sendMessage(ChatColor.RED + "Invalid flag: " + arg);
+                player.sendMessage(text("Invalid flag: " + arg, RED));
                 return true;
             }
             flags.add(flag);
         }
-        Cuboid cuboid;
-        if (flags.contains(RewindTask.Flag.LOOKUP)) {
-            if (!player.hasMetadata(Meta.LOOKUP) || !player.hasMetadata(Meta.LOOKUP_META)) {
-                player.sendMessage(ChatColor.RED + "Make a lookup first.");
-                return true;
-            }
-            LookupMeta meta = (LookupMeta) player.getMetadata(Meta.LOOKUP_META).get(0).value();
-            List<SQLAction> actions = (List<SQLAction>) player.getMetadata(Meta.LOOKUP).get(0).value();
-            cuboid = meta.selection != null ? meta.selection : Cuboid.ZERO;
-            rewindCallback(player, actions, duration, cuboid, flags);
-        } else {
-            cuboid = WorldEdit.getSelection(player);
-            if (cuboid == null) {
-                player.sendMessage(ChatColor.RED + "No selection!");
-                return true;
-            }
-            plugin.database.find(SQLAction.class)
-                .between("x", cuboid.ax, cuboid.bx) // index
-                .between("z", cuboid.az, cuboid.bz) // index
-                .eq("world", worldName) // index
-                .in("action", ActionType.inCategory(ActionType.Category.BLOCK)) // index
-                .between("y", cuboid.ay, cuboid.by)
-                .orderByAscending("id")
-                .findListAsync(ls -> rewindCallback(player, ls, duration, cuboid, flags));
-        }
-        player.sendMessage("Preparing rewind of " + cuboid + " within " + duration + "s...");
+        plugin.sessions.get(player.getUniqueId(), session -> {
+                if (session == null || session.getActions().isEmpty()) {
+                    player.sendMessage(text("Make a lookup first", RED));
+                    return;
+                }
+                Cuboid cuboid = WorldEdit.getSelection(player);
+                if (cuboid == null) cuboid = Cuboid.ZERO;
+                rewindCallback(player, session, duration, cuboid, flags);
+                player.sendMessage("Preparing rewind of " + cuboid + " within " + duration + "s...");
+            });
         return true;
     }
 
-    protected void rewindCallback(Player player, List<SQLAction> actions, int duration, Cuboid cuboid, Set<RewindTask.Flag> flags) {
+    protected void rewindCallback(Player player, LookupSession session, int duration, Cuboid cuboid, Set<RewindTask.Flag> flags) {
         Location loc1 = pos1 != null && pos1.getWorld().equals(player.getWorld()) ? pos1 : null;
         Location loc2 = pos2 != null && pos2.getWorld().equals(player.getWorld()) ? pos2 : null;
         Location loc3 = center != null && center.getWorld().equals(player.getWorld()) ? center : null;
         int durationInTicks = duration * 20;
+        List<Action> actions = new ArrayList<>(session.getActions());
+        actions.removeIf(a -> a.getActionType().category != ActionType.Category.BLOCK);
         int blocksPerTick = Math.max(1, actions.size() / durationInTicks);
         RewindTask task = new RewindTask(plugin, player, actions, 100L, blocksPerTick, cuboid, flags, loc1, loc2, loc3);
         task.start();

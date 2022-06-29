@@ -28,14 +28,8 @@
 
     <!-- WorldEdit Repo -->
     <repository>
-      <id>sk89q-snapshots</id>
-      <url>http://maven.sk89q.com/artifactory/repo</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
+      <id>worldedit</id>
+      <url>http://maven.enginehub.org/repo/</url>
     </repository>
 
   </repositories>
@@ -45,7 +39,7 @@
     <dependency>
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>
-      <version>1.18.2-R0.1-SNAPSHOT</version>
+      <version>1.19-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 
@@ -61,14 +55,6 @@
     <dependency>
       <groupId>com.winthier.sql</groupId>
       <artifactId>sql</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- Dirty -->
-    <dependency>
-      <groupId>com.cavetale.dirty</groupId>
-      <artifactId>dirty</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
@@ -89,19 +75,20 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Sidebar -->
-    <dependency>
-      <groupId>com.cavetale.sidebar</groupId>
-      <artifactId>sidebar</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- WorldEdit -->
     <dependency>
       <groupId>com.sk89q.worldedit</groupId>
       <artifactId>worldedit-bukkit</artifactId>
       <version>7.3.0-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- JUnit Testing -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>

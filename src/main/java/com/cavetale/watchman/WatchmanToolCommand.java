@@ -8,7 +8,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.FixedMetadataValue;
 
 @RequiredArgsConstructor
 public final class WatchmanToolCommand implements TabExecutor {
@@ -31,13 +30,13 @@ public final class WatchmanToolCommand implements TabExecutor {
     }
 
     protected void toggle(Player player) {
-        boolean hasTool = player.hasMetadata(Meta.TOOL_KEY);
+        boolean hasTool = plugin.sessions.wmtool(player);
         if (hasTool) {
-            player.removeMetadata(Meta.TOOL_KEY, plugin);
+            plugin.sessions.wmtool(player, false);
             player.sendMessage(Component.text("Watchman tool disabled", NamedTextColor.RED));
         } else {
-            player.setMetadata(Meta.TOOL_KEY, new FixedMetadataValue(plugin, true));
-            player.sendMessage(Component.text("Watchman tool enabled", NamedTextColor.GREEN));
+            plugin.sessions.wmtool(player, true);
+            player.sendMessage(Component.text("Watchman tool enabled", NamedTextColor.AQUA));
         }
     }
 

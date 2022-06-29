@@ -1,5 +1,7 @@
 package com.cavetale.watchman;
 
+import com.cavetale.watchman.action.Action;
+import com.cavetale.watchman.action.ActionType;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
@@ -21,11 +23,12 @@ import org.bukkit.entity.Player;
 final class WorldEditListener {
     private final WatchmanPlugin plugin;
 
-    void enable() {
+    protected void enable() {
         WorldEdit.getInstance().getEventBus().register(this);
+        plugin.getLogger().info("WorldEdit Listener enabled");
     }
 
-    void disable() {
+    protected void disable() {
         WorldEdit.getInstance().getEventBus().unregister(this);
     }
 
@@ -39,7 +42,7 @@ final class WorldEditListener {
         event.setExtent(new MyExtent(event.getExtent(), world, player));
     }
 
-    class MyExtent extends AbstractDelegateExtent {
+    protected class MyExtent extends AbstractDelegateExtent {
         private final Extent extent;
         private final World world;
         private final Player player;
@@ -51,17 +54,18 @@ final class WorldEditListener {
             this.player = player;
         }
 
-        @Override
+        @SuppressWarnings("unchecked") @Override
         public boolean setBlock(final BlockVector3 loc, final BlockStateHolder bl) throws WorldEditException {
-            if (!plugin.worldEdit) return extent.setBlock(loc, bl);
-            Block block = world.getBlockAt(loc.getX(), loc.getY(), loc.getZ());
-            BlockData newBlockData = BukkitAdapter.adapt(bl);
-            plugin.store(new SQLAction()
-                         .setNow().setActionType(ActionType.BLOCK_WORLDEDIT)
-                         .setActorPlayer(player)
-                         .setOldState(block)
-                         .setMaterial(newBlockData.getMaterial())
-                         .setNewState(newBlockData));
+            if (plugin.worldEdit) {
+                Block block = world.getBlockAt(loc.getX(), loc.getY(), loc.getZ());
+                BlockData newBlockData = BukkitAdapter.adapt(bl);
+                plugin.store(new Action()
+                             .setNow().setActionType(ActionType.PLACE)
+                             .setActorPlayer(player)
+                             .setOldState(block)
+                             .setMaterial(newBlockData.getMaterial())
+                             .setNewState(newBlockData));
+            }
             return extent.setBlock(loc, bl);
         }
     }

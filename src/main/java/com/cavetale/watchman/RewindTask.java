@@ -1,10 +1,10 @@
 package com.cavetale.watchman;
 
+import com.cavetale.watchman.action.Action;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -17,12 +17,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
 public final class RewindTask extends BukkitRunnable {
     private final WatchmanPlugin plugin;
     private final Player player;
-    private final List<SQLAction> actions;
+    private final List<Action> actions;
     private final long delay;
     private final int blocksPerTick;
     private final Cuboid cuboid;
@@ -35,7 +37,6 @@ public final class RewindTask extends BukkitRunnable {
 
     @RequiredArgsConstructor
     public enum Flag {
-        LOOKUP("Use results from previous lookup"), // Use results from lookup
         NO_SNOW("Skip snow"),
         NO_HEADS("Skip heads"),
         NO_TNT("Skip tnt"),
@@ -48,8 +49,7 @@ public final class RewindTask extends BukkitRunnable {
 
     public void start() {
         world = player.getWorld();
-        player.sendMessage(ChatColor.YELLOW + "Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick
-                           + ", flags: " + flags);
+        player.sendMessage(text("Rewinding " + actions.size() + " actions, bpt: " + blocksPerTick + ", flags: " + flags, YELLOW));
         if (!flags.contains(Flag.REVERSE)) {
             hideEntities();
             hideBlocks();
@@ -83,15 +83,15 @@ public final class RewindTask extends BukkitRunnable {
 
     public void hideBlocks() {
         Set<Vec3i> done = new HashSet<>();
-        for (SQLAction row : actions) {
-            Vec3i vector = row.getVector();
+        for (Action action : actions) {
+            Vec3i vector = action.getVector();
             if (done.contains(vector)) continue;
             done.add(vector);
             Block block = vector.toBlock(world);
             if (flags.contains(Flag.AIR)) {
                 player.sendBlockChange(block.getLocation(), Material.AIR.createBlockData());
             } else {
-                BlockData blockData = row.getOldBlockData();
+                BlockData blockData = action.getOldBlockData();
                 if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
                     blockData = null;
                 }
@@ -114,7 +114,7 @@ public final class RewindTask extends BukkitRunnable {
             if (!flags.contains(Flag.REVERSE)) {
                 showEntities();
             }
-            player.sendMessage(ChatColor.YELLOW + "Rewind done!");
+            player.sendMessage(text("Rewind done!", YELLOW));
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 1.0f);
             cancel();
         }
@@ -181,7 +181,7 @@ public final class RewindTask extends BukkitRunnable {
             if (actionIndex >= actions.size()) {
                 return false;
             }
-            SQLAction row = actions.get(actionIndex++);
+            Action row = actions.get(actionIndex++);
             Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
             BlockData blockData = row.getNewBlockData();
             if (block.getType() == blockData.getMaterial()) {
@@ -212,7 +212,7 @@ public final class RewindTask extends BukkitRunnable {
             if (actionIndex < 0) {
                 return false;
             }
-            SQLAction row = actions.get(actionIndex--);
+            Action row = actions.get(actionIndex--);
             Block block = world.getBlockAt(row.getX(), row.getY(), row.getZ());
             BlockData blockData = row.getOldBlockData();
             if (blockData == null) blockData = Material.AIR.createBlockData();
