@@ -96,7 +96,11 @@ public final class Sessions implements Listener {
 
     public void showPage(Player player, int pageIndex) {
         get(player.getUniqueId(), session -> {
-                if (session == null || session.getActions().isEmpty()) {
+                if (session == null) {
+                    player.sendMessage(text("No lookup to show", RED));
+                    return;
+                }
+                if (session.getActions().isEmpty()) {
                     player.sendMessage(text("No logs to show: " + session.getParams(), RED));
                     return;
                 }
