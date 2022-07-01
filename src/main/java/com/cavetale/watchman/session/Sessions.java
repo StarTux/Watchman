@@ -129,7 +129,7 @@ public final class Sessions implements Listener {
                 for (int i = 0; i < pageSize; i += 1) {
                     int actionIndex = pageIndex * pageSize + i;
                     if (actionIndex >= session.getActions().size()) break;
-                    Action action = session.getActions().get(i);
+                    Action action = session.getActions().get(actionIndex);
                     player.sendMessage(action.getMessage());
                 }
             });
