@@ -427,7 +427,7 @@ public final class Action {
             tag = ItemKinds.icon(new ItemStack(changedMaterial));
             if (tag.equals(empty())) tag = text(toCamelCase(" ", changedMaterial), GOLD);
         } else if (changedEntityType != null) {
-            tag = text(toCamelCase(" ", changedMaterial), RED);
+            tag = text(toCamelCase(" ", changedEntityType), RED);
         } else {
             tag = text("N/A", DARK_GRAY);
         }
