@@ -248,6 +248,7 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onEntityPickupItem(EntityPickupItemEvent event) {
+        if (event.getItem().getItemStack().getType().isAir()) return;
         plugin.store(new Action()
                      .setNow().setActionType(ActionType.PICKUP)
                      .setMaterial(event.getItem().getItemStack().getType())
