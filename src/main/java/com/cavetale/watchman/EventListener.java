@@ -335,6 +335,7 @@ public final class EventListener implements Listener {
         final boolean detective = player.hasPermission("watchman.tool.detective");
         BlockLookup lookup = BlockLookup.of(block);
         lookup.accept(plugin.database.find(SQLLog.class))
+            .limit(1000)
             .findListAsync(logs -> {
                     if (!detective) logs.removeIf(l -> ActionType.ofIndex(l.getActionType()).category != ActionType.Category.BLOCK);
                     plugin.sessions.set(player.getUniqueId(), lookup.getParameters(), logs, session -> {

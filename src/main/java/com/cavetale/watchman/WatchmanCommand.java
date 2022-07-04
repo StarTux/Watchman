@@ -91,6 +91,7 @@ public final class WatchmanCommand implements TabExecutor {
             }
             if (args.length < 2) return false;
             LookupContainer lookup = new LookupContainer();
+            int limit = 1000;
             for (int i = 1; i < args.length; i += 1) {
                 String arg = args[i];
                 String[] toks = arg.split(":", 2);
@@ -169,6 +170,9 @@ public final class WatchmanCommand implements TabExecutor {
                 case "time": case "t":
                     lookup.setTime(TimeLookup.parse(value));
                     break;
+                case "limit": case "l":
+                    limit = CommandArgCompleter.requireInt(value, j -> j > 0 && j < 100000);
+                    break;
                 default:
                     throw new CommandWarn("Unknown option: " + key);
                 }
@@ -178,6 +182,7 @@ public final class WatchmanCommand implements TabExecutor {
             }
             lookup.accept(plugin.database.find(SQLLog.class))
                 .orderByDescending("time")
+                .limit(10_000)
                 .findListAsync(logs -> {
                         if (player == null) {
                             plugin.database.scheduleAsyncTask(() -> {
@@ -329,11 +334,12 @@ public final class WatchmanCommand implements TabExecutor {
                 return matchTab(arg, List.of(l + ":" + 16, l + ":world", l + ":we", l + ":worldedit"));
             }
             if (arg.startsWith("time:") || arg.startsWith("t:")) {
+                String[] toks = arg.split(":", 2);
                 try {
-                    long seconds = Time.parseSeconds(arg.split(":", 2)[1]);
-                    return List.of(arg.split(":", 2)[0] + ":" + Time.formatSeconds(seconds));
-                } catch (IllegalArgumentException nfe) {
-                    return List.of();
+                    TimeLookup timeLookup = TimeLookup.parse(toks[1]);
+                    return List.of(toks[0] + ":" + timeLookup.format());
+                } catch (CommandWarn warn) {
+                    return List.of(toks[0] + ":");
                 }
             }
             if (arg.startsWith("player:") || arg.startsWith("p:")) {
@@ -390,8 +396,19 @@ public final class WatchmanCommand implements TabExecutor {
                     .limit(128)
                     .collect(Collectors.toList());
             }
+            if (arg.startsWith("limit:") || arg.startsWith("l:")) {
+                String[] toks = arg.split(":", 2);
+                try {
+                    int value = Integer.parseInt(toks[1]);
+                    return List.of(toks[0] + ":" + value,
+                                   toks[0] + ":" + (value * 10));
+                } catch (IllegalArgumentException iae) {
+                    return List.of(toks[0] + ":");
+                }
+            }
             return matchTab(arg, List.of("player:", "action:", "world:",
-                                         "radius:", "item:", "block:", "entity:", "time:"));
+                                         "radius:", "item:", "block:",
+                                         "entity:", "time:", "limit:"));
         }
         if (args.length == 2 && args[0].equals("page")) {
             return List.of();
