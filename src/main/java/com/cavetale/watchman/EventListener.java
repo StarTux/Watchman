@@ -165,16 +165,14 @@ public final class EventListener implements Listener {
             return;
         }
         EntityDamageEvent lastDamageCause = entity.getLastDamageCause();
-        if (lastDamageCause instanceof EntityDamageByEntityEvent) {
-            EntityDamageByEntityEvent edbee = (EntityDamageByEntityEvent) lastDamageCause;
+        if (lastDamageCause instanceof EntityDamageByEntityEvent edbee) {
             plugin.store(new Action()
                          .setNow().setActionType(ActionType.KILL)
                          .setActorEntity(edbee.getDamager())
                          .location(entity.getLocation())
                          .setEntity(entity));
             return;
-        } else if (lastDamageCause instanceof EntityDamageByBlockEvent) {
-            EntityDamageByBlockEvent edbbe = (EntityDamageByBlockEvent) lastDamageCause;
+        } else if (lastDamageCause instanceof EntityDamageByBlockEvent edbbe && edbbe.getDamager() != null) {
             plugin.store(new Action()
                          .setNow().setActionType(ActionType.KILL)
                          .setActorBlock(edbbe.getDamager())
