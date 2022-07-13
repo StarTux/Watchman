@@ -508,11 +508,16 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onVehicleDestroy(VehicleDestroyEvent event) {
-        plugin.store(new Action().setNow()
-                     .setActionType(ActionType.KILL)
-                     .setActorEntity(event.getAttacker())
-                     .location(event.getVehicle().getLocation())
-                     .setEntity(event.getVehicle()));
+        Action action = new Action().setNow()
+            .setActionType(ActionType.KILL)
+            .location(event.getVehicle().getLocation())
+            .setEntity(event.getVehicle());
+        if (event.getAttacker() != null) {
+            action.setActorEntity(event.getAttacker());
+        } else {
+            action.setActorUnknown();
+        }
+        plugin.store(action);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
