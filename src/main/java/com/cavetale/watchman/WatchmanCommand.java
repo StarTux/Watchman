@@ -18,6 +18,7 @@ import com.cavetale.watchman.lookup.TimeLookup;
 import com.cavetale.watchman.lookup.WorldLookup;
 import com.cavetale.watchman.session.LookupSession;
 import com.cavetale.watchman.sql.SQLLog;
+import com.winthier.playercache.Cache;
 import com.winthier.playercache.PlayerCache;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -347,8 +348,7 @@ public final class WatchmanCommand implements TabExecutor {
                 String pref = toks[0] + ":";
                 String name = toks[1];
                 String lower = name.toLowerCase();
-                return PlayerCache.allCached().stream()
-                    .map(PlayerCache::getName)
+                return Cache.names().stream()
                     .filter(s -> s.toLowerCase().startsWith(lower))
                     .map(s -> pref + s)
                     .limit(128)
