@@ -37,6 +37,7 @@ import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -149,6 +150,15 @@ public final class EventListener implements Listener {
     private void onPlayerBlockShear(PlayerShearBlockEvent event) {
         Action action = new Action()
             .setNow().setActionType(ActionType.PLACE)
+            .setActorPlayer(event.getPlayer())
+            .setOldState(event.getBlock());
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setNewState(event.getBlock())));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    private void onSignChange(SignChangeEvent event) {
+        Action action = new Action().setNow()
+            .setActionType(ActionType.PLACE)
             .setActorPlayer(event.getPlayer())
             .setOldState(event.getBlock());
         Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setNewState(event.getBlock())));
