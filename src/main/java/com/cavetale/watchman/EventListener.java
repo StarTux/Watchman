@@ -56,6 +56,7 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -622,6 +623,18 @@ public final class EventListener implements Listener {
                 .setItemStack(armorStandItem);
         }
         plugin.store(row);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    private void onPlayerEditBook(PlayerEditBookEvent event) {
+        Material material = event.isSigning() ? Material.WRITTEN_BOOK : Material.WRITABLE_BOOK;
+        ItemStack itemStack = new ItemStack(material);
+        itemStack.setItemMeta(event.getNewBookMeta());
+        plugin.store(new Action().setNow()
+                     .setActionType(ActionType.WRITE)
+                     .setActorPlayer(event.getPlayer())
+                     .location(event.getPlayer().getLocation())
+                     .setItemStack(itemStack));
     }
 
     private static final Component WMTOOL_NOTIFICATION = Component.text("/wmtool", YELLOW)

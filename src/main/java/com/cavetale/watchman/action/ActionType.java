@@ -18,6 +18,7 @@ public enum ActionType {
 
     DROP(6, "drop", Category.ITEM),
     PICKUP(7, "pickup", Category.ITEM),
+    WRITE(12, "write", Category.ITEM),
 
     CHAT(8, "said", Category.PLAYER),
     JOIN(9, "join", Category.PLAYER),
