@@ -160,6 +160,7 @@ public final class EventListener implements Listener {
         Action action = new Action().setNow()
             .setActionType(ActionType.PLACE)
             .setActorPlayer(event.getPlayer())
+            .setMaterial(event.getBlock().getType())
             .setOldState(event.getBlock());
         Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setNewState(event.getBlock())));
     }
