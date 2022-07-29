@@ -4,6 +4,7 @@ import com.cavetale.core.event.block.PlayerBreakBlockEvent;
 import com.cavetale.core.event.block.PlayerChangeBlockEvent;
 import com.cavetale.core.event.hud.PlayerHudEvent;
 import com.cavetale.core.event.hud.PlayerHudPriority;
+import com.cavetale.core.event.item.PlayerAbsorbItemEvent;
 import com.cavetale.watchman.action.Action;
 import com.cavetale.watchman.action.ActionType;
 import com.cavetale.watchman.lookup.BlockLookup;
@@ -251,6 +252,17 @@ public final class EventListener implements Listener {
                      .setNow().setActionType(ActionType.PICKUP)
                      .setMaterial(event.getItem().getItemStack().getType())
                      .setActorEntity(event.getEntity())
+                     .location(event.getItem().getLocation())
+                     .setItemStack(event.getItem().getItemStack()));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    private void onPlayerAbsorbItem(PlayerAbsorbItemEvent event) {
+        if (event.getItem().getItemStack().getType().isAir()) return;
+        plugin.store(new Action()
+                     .setNow().setActionType(ActionType.PICKUP)
+                     .setMaterial(event.getItem().getItemStack().getType())
+                     .setActorPlayer(event.getPlayer())
                      .location(event.getItem().getLocation())
                      .setItemStack(event.getItem().getItemStack()));
     }
