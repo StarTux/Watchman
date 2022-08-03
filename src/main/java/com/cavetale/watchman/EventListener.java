@@ -249,6 +249,7 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onPlayerDropItem(PlayerDropItemEvent event) {
+        if (event.getItemDrop().getItemStack().getType().isAir()) return;
         plugin.store(new Action()
                      .setNow().setActionType(ActionType.DROP)
                      .setMaterial(event.getItemDrop().getItemStack().getType())
