@@ -6,6 +6,7 @@ import com.cavetale.core.command.RemotePlayer;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.watchman.action.Action;
 import com.cavetale.watchman.action.ActionType;
+import com.cavetale.watchman.action.ActorType;
 import com.cavetale.watchman.lookup.ActionTypeLookup;
 import com.cavetale.watchman.lookup.EntityTypeLookup;
 import com.cavetale.watchman.lookup.LookupContainer;
@@ -22,7 +23,10 @@ import com.winthier.playercache.Cache;
 import com.winthier.playercache.PlayerCache;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,8 +44,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.space;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
+import static net.kyori.adventure.text.JoinConfiguration.separator;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
@@ -311,6 +317,7 @@ public final class WatchmanCommand implements TabExecutor {
                 });
             return true;
         }
+        case "rank": return rank(sender, Arrays.copyOfRange(args, 1, args.length));
         default:
             return false;
         }
@@ -320,7 +327,7 @@ public final class WatchmanCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command comand, String alias, String[] args) {
         String arg = args.length == 0 ? "" : args[args.length - 1];
         if (args.length == 1) {
-            return matchTab(arg, List.of("tool", "rollback", "clear", "page", "info", "lookup", "tab", "tp", "open"));
+            return matchTab(arg, List.of("tool", "rollback", "clear", "page", "info", "lookup", "tab", "tp", "open", "rank"));
         }
         if (args.length > 1 && (args[0].equals("lookup") || args[0].equals("l"))) {
             if (arg.startsWith("action:") || arg.startsWith("a:")) {
@@ -413,7 +420,55 @@ public final class WatchmanCommand implements TabExecutor {
         if (args.length == 2 && args[0].equals("page")) {
             return List.of();
         }
+        if (args[0].equals("rank")) {
+            if (args.length == 2) {
+                List<String> worldNames = new ArrayList<>();
+                for (var world : Bukkit.getWorlds()) {
+                    worldNames.add(world.getName());
+                }
+                return matchTab(arg, worldNames);
+            } else {
+                return List.of();
+            }
+        }
         return null;
+    }
+
+
+    private boolean rank(CommandSender sender, String[] args) {
+        if (args.length != 1) return false;
+        final String worldName = args[0];
+        final String query = "SELECT actor_uuid, count(*) score FROM "
+            + plugin.database.getTable(SQLLog.class).getTableName()
+            + " WHERE action_type = " + ActionType.PLACE.index
+            + " AND actor_type = " + ActorType.PLAYER.index
+            + " GROUP BY actor_uuid";
+        plugin.database.scheduleAsyncTask(() -> {
+                final Map<UUID, Integer> scores = new HashMap<>();
+                try (var resultSet = plugin.database.executeQuery(query)) {
+                    while (resultSet.next()) {
+                        final int actorId = resultSet.getInt("actor_uuid");
+                        final int score = resultSet.getInt("score");
+                        final UUID uuid = plugin.dictionary.getUuid(actorId);
+                        scores.put(uuid, score);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                List<UUID> ranking = new ArrayList<>(scores.keySet());
+                ranking.sort((b, a) -> Integer.compare(scores.get(a), scores.get(b)));
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                        sender.sendMessage(text("Total " + scores.size() + " players", AQUA));
+                        for (UUID uuid : ranking) {
+                            sender.sendMessage(join(separator(space()),
+                                                    text(scores.get(uuid), YELLOW),
+                                                    text(PlayerCache.nameForUuid(uuid), WHITE),
+                                                    text(uuid.toString(), GRAY)));
+                        }
+                    });
+            });
+        sender.sendMessage(text("Counting, please wait...", YELLOW));
+        return true;
     }
 
     private List<String> matchTab(String arg, List<String> args) {

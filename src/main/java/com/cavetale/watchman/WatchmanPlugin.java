@@ -30,7 +30,7 @@ public final class WatchmanPlugin extends JavaPlugin {
     protected boolean eventEntityBlockForm;
     protected boolean worldEdit;
     protected Duration logExpiry;
-    private Dictionary dictionary = new Dictionary(this);
+    protected Dictionary dictionary = new Dictionary(this);
     protected Sessions sessions = new Sessions(this);
 
     @Override
