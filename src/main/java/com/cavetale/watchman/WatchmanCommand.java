@@ -438,12 +438,15 @@ public final class WatchmanCommand implements TabExecutor {
     private boolean rank(CommandSender sender, String[] args) {
         if (args.length != 1) return false;
         final String worldName = args[0];
-        final String query = "SELECT actor_uuid, count(*) score FROM "
-            + plugin.database.getTable(SQLLog.class).getTableName()
-            + " WHERE action_type = " + ActionType.PLACE.index
-            + " AND actor_type = " + ActorType.PLAYER.index
-            + " GROUP BY actor_uuid";
         plugin.database.scheduleAsyncTask(() -> {
+                final String query = "SELECT actor_uuid, count(*) score FROM "
+                    + plugin.database.getTable(SQLLog.class).getTableName()
+                    + " WHERE server = " + plugin.dictionary.getServerIndex(Connect.get().getServerName())
+                    + " AND world = " + plugin.dictionary.getWorldIndex(worldName)
+                    + " AND action_type = " + ActionType.PLACE.index
+                    + " AND actor_type = " + ActorType.PLAYER.index
+                    + " GROUP BY actor_uuid";
+                plugin.getLogger().info("[rank] [" + worldName + "] " + query);
                 final Map<UUID, Integer> scores = new HashMap<>();
                 try (var resultSet = plugin.database.executeQuery(query)) {
                     while (resultSet.next()) {
