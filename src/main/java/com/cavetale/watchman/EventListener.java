@@ -153,7 +153,7 @@ public final class EventListener implements Listener {
             .setActorPlayer(event.getPlayer())
             .setOldState(event.getBlock());
         final Block block = event.getBlock();
-        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setNewState(block)));
+        Bukkit.getScheduler().runTask(plugin, () -> plugin.store(action.setMaterial(block.getType()).setNewState(block)));
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
