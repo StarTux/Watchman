@@ -20,6 +20,6 @@ public final class MaterialLookup extends ChangedTypeLookup {
 
     @Override
     public String getParameters() {
-        return prefix + ':' + material.getKey().getKey();
+        return "" + prefix + ":" + material.getKey().getKey();
     }
 }

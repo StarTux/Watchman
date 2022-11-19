@@ -20,6 +20,6 @@ public final class EntityTypeLookup extends ChangedTypeLookup {
 
     @Override
     public String getParameters() {
-        return prefix + ':' + entityType.getKey().getKey();
+        return "" + prefix + ":" + entityType.getKey().getKey();
     }
 }

@@ -27,6 +27,6 @@ public final class MaterialTagLookup extends ChangedTypeLookup {
 
     @Override
     public String getParameters() {
-        return prefix + ':' + '#' + tag.getKey().getKey();
+        return "" + prefix + ":#" + tag.getKey().getKey();
     }
 }
