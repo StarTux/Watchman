@@ -318,6 +318,7 @@ public final class WatchmanCommand implements TabExecutor {
             return true;
         }
         case "rank": return rank(sender, Arrays.copyOfRange(args, 1, args.length));
+        case "ranksel": return rankSel(sender, Arrays.copyOfRange(args, 1, args.length));
         default:
             return false;
         }
@@ -327,7 +328,7 @@ public final class WatchmanCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command comand, String alias, String[] args) {
         String arg = args.length == 0 ? "" : args[args.length - 1];
         if (args.length == 1) {
-            return matchTab(arg, List.of("tool", "rollback", "clear", "page", "info", "lookup", "tab", "tp", "open", "rank"));
+            return matchTab(arg, List.of("tool", "rollback", "clear", "page", "info", "lookup", "tab", "tp", "open", "rank", "ranksel"));
         }
         if (args.length > 1 && (args[0].equals("lookup") || args[0].equals("l"))) {
             if (arg.startsWith("action:") || arg.startsWith("a:")) {
@@ -462,6 +463,52 @@ public final class WatchmanCommand implements TabExecutor {
                 ranking.sort((b, a) -> Integer.compare(scores.get(a), scores.get(b)));
                 Bukkit.getScheduler().runTask(plugin, () -> {
                         sender.sendMessage(text("Total " + scores.size() + " players", AQUA));
+                        for (UUID uuid : ranking) {
+                            sender.sendMessage(join(separator(space()),
+                                                    text(scores.get(uuid), YELLOW),
+                                                    text(PlayerCache.nameForUuid(uuid), WHITE),
+                                                    text(uuid.toString(), GRAY)));
+                        }
+                    });
+            });
+        sender.sendMessage(text("Counting, please wait...", YELLOW));
+        return true;
+    }
+
+    private boolean rankSel(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            throw new CommandWarn("[wm ranksel] Player required)");
+        }
+        if (args.length != 0) return false;
+        final String worldName = player.getWorld().getName();
+        final Cuboid cuboid = WorldEdit.getSelection(player);
+        if (cuboid == null) throw new CommandWarn("Selection required!");
+        plugin.database.scheduleAsyncTask(() -> {
+                final String query = "SELECT actor_uuid, count(*) score FROM "
+                    + plugin.database.getTable(SQLLog.class).getTableName()
+                    + " WHERE server = " + plugin.dictionary.getServerIndex(Connect.get().getServerName())
+                    + " AND world = " + plugin.dictionary.getWorldIndex(worldName)
+                    + " AND x BETWEEN " + cuboid.ax + " AND " + cuboid.bx
+                    + " AND z BETWEEN " + cuboid.az + " AND " + cuboid.bz
+                    + " AND action_type = " + ActionType.PLACE.index
+                    + " AND actor_type = " + ActorType.PLAYER.index
+                    + " GROUP BY actor_uuid";
+                plugin.getLogger().info("[rank] [" + worldName + "] " + cuboid + " " + query);
+                final Map<UUID, Integer> scores = new HashMap<>();
+                try (var resultSet = plugin.database.executeQuery(query)) {
+                    while (resultSet.next()) {
+                        final int actorId = resultSet.getInt("actor_uuid");
+                        final int score = resultSet.getInt("score");
+                        final UUID uuid = plugin.dictionary.getUuid(actorId);
+                        scores.put(uuid, score);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                List<UUID> ranking = new ArrayList<>(scores.keySet());
+                ranking.sort((b, a) -> Integer.compare(scores.get(a), scores.get(b)));
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                        sender.sendMessage(text("Total " + scores.size() + " players in " + cuboid, AQUA));
                         for (UUID uuid : ranking) {
                             sender.sendMessage(join(separator(space()),
                                                     text(scores.get(uuid), YELLOW),
