@@ -98,7 +98,7 @@ public final class WatchmanCommand implements TabExecutor {
             }
             if (args.length < 2) return false;
             LookupContainer lookup = new LookupContainer();
-            int limit = 1000;
+            int limit = 10000;
             for (int i = 1; i < args.length; i += 1) {
                 String arg = args[i];
                 String[] toks = arg.split(":", 2);
@@ -178,7 +178,7 @@ public final class WatchmanCommand implements TabExecutor {
                     lookup.setTime(TimeLookup.parse(value));
                     break;
                 case "limit": case "l":
-                    limit = CommandArgCompleter.requireInt(value, j -> j > 0 && j < 100000);
+                    limit = CommandArgCompleter.requireInt(value, j -> j > 0 && j <= 100_000_000);
                     break;
                 default:
                     throw new CommandWarn("Unknown option: " + key);
@@ -189,7 +189,7 @@ public final class WatchmanCommand implements TabExecutor {
             }
             lookup.accept(plugin.database.find(SQLLog.class))
                 .orderByDescending("time")
-                .limit(10_000)
+                .limit(limit)
                 .findListAsync(logs -> {
                         if (player == null) {
                             plugin.database.scheduleAsyncTask(() -> {
