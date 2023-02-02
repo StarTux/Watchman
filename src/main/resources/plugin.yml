@@ -39,6 +39,7 @@ commands:
       /wm rewind [seconds] [flags...] - Rewind WE selection
       /wm reload - Reload configuration
       /wm rank <world> - Rank builders in world
+      /wm ranksel - Rank builders in selection
 
   wmtool:
     aliases: []
