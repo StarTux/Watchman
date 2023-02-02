@@ -7,6 +7,7 @@ import com.cavetale.watchman.action.Action;
 import com.cavetale.watchman.action.ActionType;
 import com.cavetale.watchman.session.LookupSession;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -89,6 +90,11 @@ public final class RewindCommand extends AbstractCommand<WatchmanPlugin> {
         List<Action> actions = new ArrayList<>(session.getActions());
         actions.removeIf(a -> a.getActionType().category != ActionType.Category.BLOCK);
         int blocksPerTick = Math.max(1, actions.size() / durationInTicks);
+        Collections.sort(actions, (a, b) -> {
+                int val = Long.compare(a.getLog().getTime(), b.getLog().getTime());
+                if (val != 0) return val;
+                return Long.compare(a.getLog().getId(), b.getLog().getId());
+            });
         RewindTask task = new RewindTask(plugin, player, actions, 100L, blocksPerTick, cuboid, flags, loc1, loc2, loc3);
         task.start();
     }
