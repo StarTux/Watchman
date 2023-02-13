@@ -3,17 +3,18 @@ package com.cavetale.watchman.lookup;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.watchman.sql.SQLLog;
 import com.winthier.sql.SQLTable;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Setter;
 import org.bukkit.block.Block;
 import static com.cavetale.watchman.WatchmanPlugin.dictionary;
 
 /**
  * Used by wmtool.
  */
-@RequiredArgsConstructor
+@AllArgsConstructor
 public final class BlockLookup implements PlaceLookup {
     private final String server;
-    private final String world;
+    @Setter private String world;
     private final int x;
     private final int y;
     private final int z;

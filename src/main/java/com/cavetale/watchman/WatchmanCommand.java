@@ -120,7 +120,11 @@ public final class WatchmanCommand implements TabExecutor {
                     }
                     break;
                 case "world": case "w": {
-                    lookup.setWhere(WorldLookup.of(value));
+                    if (lookup.getWhere() != null) {
+                        lookup.getWhere().setWorld(value);
+                    } else {
+                        lookup.setWhere(WorldLookup.of(value));
+                    }
                     break;
                 }
                 case "radius": case "r":
