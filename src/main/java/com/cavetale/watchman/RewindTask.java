@@ -34,6 +34,7 @@ public final class RewindTask extends BukkitRunnable {
     private final Location moveAnchor;
     private int actionIndex = 0;
     private World world;
+    private int ticks;
 
     @RequiredArgsConstructor
     public enum Flag {
@@ -56,7 +57,6 @@ public final class RewindTask extends BukkitRunnable {
         } else {
             actionIndex = actions.size() - 1;
         }
-        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 2.0f);
         runTaskTimer(plugin, 200L, 1L);
         if (flags.contains(Flag.MOVE) && moveFrom != null) {
             player.teleport(moveFrom, TeleportCause.PLUGIN);
@@ -107,6 +107,9 @@ public final class RewindTask extends BukkitRunnable {
             cancel();
             return;
         }
+        if (ticks == 0) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 2.0f);
+        }
         boolean res = flags.contains(Flag.REVERSE)
             ? runReverse()
             : runForward();
@@ -118,6 +121,7 @@ public final class RewindTask extends BukkitRunnable {
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, SoundCategory.MASTER, 1.0f, 1.0f);
             cancel();
         }
+        ticks += 1;
     }
 
     private Location getMoveLocation() {
