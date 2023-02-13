@@ -3,14 +3,15 @@ package com.cavetale.watchman.lookup;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.watchman.sql.SQLLog;
 import com.winthier.sql.SQLTable;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Setter;
 import org.bukkit.Location;
 import static com.cavetale.watchman.WatchmanPlugin.dictionary;
 
-@RequiredArgsConstructor
+@AllArgsConstructor
 public final class RadiusLookup implements PlaceLookup {
     private final String server;
-    private final String world;
+    @Setter private String world;
     private final int x;
     private final int y;
     private final int z;

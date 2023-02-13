@@ -3,14 +3,15 @@ package com.cavetale.watchman.lookup;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.watchman.sql.SQLLog;
 import com.winthier.sql.SQLTable;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Setter;
 import org.bukkit.World;
 import static com.cavetale.watchman.WatchmanPlugin.dictionary;
 
-@RequiredArgsConstructor
+@AllArgsConstructor
 public final class WorldLookup implements PlaceLookup {
     private final String server;
-    private final String world;
+    @Setter private String world;
 
     public static WorldLookup of(World w) {
         return new WorldLookup(Connect.get().getServerName(), w.getName());
