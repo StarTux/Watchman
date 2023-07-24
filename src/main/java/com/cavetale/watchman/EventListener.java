@@ -68,6 +68,7 @@ import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import static com.cavetale.watchman.util.Entities.findSourceEntity;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
@@ -182,7 +183,7 @@ public final class EventListener implements Listener {
         if (lastDamageCause instanceof EntityDamageByEntityEvent edbee) {
             plugin.store(new Action()
                          .setNow().setActionType(ActionType.KILL)
-                         .setActorEntity(edbee.getDamager())
+                         .setActorEntity(findSourceEntity(edbee.getDamager()))
                          .location(entity.getLocation())
                          .setEntity(entity));
             return;
@@ -539,7 +540,7 @@ public final class EventListener implements Listener {
             .location(event.getVehicle().getLocation())
             .setEntity(event.getVehicle());
         if (event.getAttacker() != null) {
-            action.setActorEntity(event.getAttacker());
+            action.setActorEntity(findSourceEntity(event.getAttacker()));
         } else {
             action.setActorUnknown();
         }
@@ -569,7 +570,7 @@ public final class EventListener implements Listener {
     private void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
         plugin.store(new Action().setNow()
                      .setActionType(ActionType.KILL)
-                     .setActorEntity(event.getRemover())
+                     .setActorEntity(findSourceEntity(event.getRemover()))
                      .location(event.getEntity().getLocation())
                      .setEntity(event.getEntity()));
     }
@@ -584,7 +585,7 @@ public final class EventListener implements Listener {
             if (item == null || item.getType().isAir()) return;
             plugin.store(new Action().setNow()
                          .setActionType(ActionType.ACCESS)
-                         .setActorEntity(event.getDamager())
+                         .setActorEntity(findSourceEntity(event.getDamager()))
                          .location(itemFrame.getLocation())
                          .setItemStack(item));
         }
