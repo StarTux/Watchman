@@ -96,7 +96,7 @@ public final class RewindTask extends BukkitRunnable {
             BlockData blockData = action.getOldBlockData();
             if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
                 blockData = null;
-            } else if (flags.contains(Flag.KEEP_LIGHT) && blockData.getMaterial() == Material.LIGHT) {
+            } else if (flags.contains(Flag.KEEP_LIGHT) && block.getType() == Material.LIGHT) {
                 continue;
             }
             if (blockData == null) blockData = Material.AIR.createBlockData();
