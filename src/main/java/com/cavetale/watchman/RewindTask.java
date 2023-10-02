@@ -41,6 +41,7 @@ public final class RewindTask extends BukkitRunnable {
         NO_SNOW("Skip snow"),
         NO_HEADS("Skip heads"),
         NO_TNT("Skip tnt"),
+        KEEP_LIGHT("Keep light blocks"),
         REVERSE("Revert animation"),
         MOVE("Apply movement: pos 1, pos 2, center"),
         AIR("Turn all origin blocks into air");
@@ -90,14 +91,16 @@ public final class RewindTask extends BukkitRunnable {
             Block block = vector.toBlock(world);
             if (flags.contains(Flag.AIR)) {
                 player.sendBlockChange(block.getLocation(), Material.AIR.createBlockData());
-            } else {
-                BlockData blockData = action.getOldBlockData();
-                if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
-                    blockData = null;
-                }
-                if (blockData == null) blockData = Material.AIR.createBlockData();
-                player.sendBlockChange(block.getLocation(), blockData);
+                continue;
             }
+            BlockData blockData = action.getOldBlockData();
+            if (flags.contains(Flag.NO_SNOW) && blockData.getMaterial() == Material.SNOW) {
+                blockData = null;
+            } else if (flags.contains(Flag.KEEP_LIGHT) && blockData.getMaterial() == Material.LIGHT) {
+                continue;
+            }
+            if (blockData == null) blockData = Material.AIR.createBlockData();
+            player.sendBlockChange(block.getLocation(), blockData);
         }
     }
 
