@@ -4,6 +4,7 @@ import com.cavetale.core.connect.Connect;
 import com.cavetale.core.font.Unicode;
 import com.cavetale.core.item.ItemKinds;
 import com.cavetale.watchman.Vec3i;
+import com.cavetale.watchman.WatchmanPlugin;
 import com.cavetale.watchman.sql.SQLExtra;
 import com.cavetale.watchman.sql.SQLLog;
 import com.winthier.playercache.PlayerCache;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
 import lombok.Data;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -533,6 +535,7 @@ public final class Action {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public boolean rollback() {
         switch (actionType) {
         case BREAK:
@@ -554,8 +557,13 @@ public final class Action {
             Block block = getBlock();
             if (block == null) return false;
             if (extras == null || !extras.containsKey(ExtraType.ENTITY)) return false;
-            @SuppressWarnings("deprecation") Entity entity = Bukkit
-                .getUnsafe().deserializeEntity(extras.get(ExtraType.ENTITY), block.getWorld(), false);
+            final Entity entity;
+            try {
+                entity = Bukkit.getUnsafe().deserializeEntity(extras.get(ExtraType.ENTITY), block.getWorld(), false);
+            } catch (IllegalArgumentException iae) {
+                WatchmanPlugin.getInstance().getLogger().log(Level.SEVERE, "rollback actionType=KILL " + log, iae);
+                return false;
+            }
             return entity.spawnAt(block.getLocation().add(0.5, 0.0, 0.5));
         }
         default: return false;
