@@ -32,12 +32,12 @@ public final class RewindCommand extends AbstractCommand<WatchmanPlugin> {
     protected void onEnable() {
         rootNode.addChild("start").arguments("<duration> [flags]")
             .description("Start a rewind")
-            .completers(CommandArgCompleter.integer(i -> i > 1))
+            .completers(CommandArgCompleter.integer(i -> i > 1),
+                        CommandArgCompleter.enumLowerList(RewindTask.Flag.class))
             .playerCaller(this::start);
         rootNode.addChild("pos").arguments("<1|2|center|reset>")
             .description("Set or reset positions")
-            .completers(CommandArgCompleter.list("1", "2", "center", "reset"),
-                        CommandArgCompleter.enumLowerList(RewindTask.Flag.class))
+            .completers(CommandArgCompleter.list("1", "2", "center", "reset"))
             .playerCaller(this::pos);
         rootNode.addChild("flags").denyTabCompletion()
             .description("Explain all flags")
