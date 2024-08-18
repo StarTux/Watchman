@@ -1,9 +1,9 @@
 package com.cavetale.watchman.sql;
 
 import com.cavetale.core.util.Json;
+import com.winthier.sql.SQLRow;
 import com.winthier.sql.SQLRow.Name;
 import com.winthier.sql.SQLRow.NotNull;
-import com.winthier.sql.SQLRow;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;

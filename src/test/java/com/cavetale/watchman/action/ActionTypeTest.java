@@ -1,8 +1,8 @@
 package com.cavetale.watchman.action;
 
-import org.junit.Test;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
+import org.junit.Test;
 
 public final class ActionTypeTest {
     @Test

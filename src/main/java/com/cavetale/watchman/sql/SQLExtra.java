@@ -1,10 +1,10 @@
 package com.cavetale.watchman.sql;
 
 import com.cavetale.watchman.action.ExtraType;
+import com.winthier.sql.SQLRow;
 import com.winthier.sql.SQLRow.Key;
 import com.winthier.sql.SQLRow.Name;
 import com.winthier.sql.SQLRow.NotNull;
-import com.winthier.sql.SQLRow;
 import java.sql.Blob;
 import java.sql.SQLException;
 import javax.sql.rowset.serial.SerialBlob;
