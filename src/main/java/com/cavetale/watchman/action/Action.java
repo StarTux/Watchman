@@ -426,7 +426,9 @@ public final class Action {
     public Component getChangedTag() {
         Component tag;
         if (changedMaterial != null) {
-            tag = ItemKinds.icon(new ItemStack(changedMaterial));
+            tag = changedMaterial.isItem()
+                ? ItemKinds.icon(new ItemStack(changedMaterial))
+                : text(toCamelCase(" ", changedMaterial), GOLD);
             if (tag.equals(empty())) tag = text(toCamelCase(" ", changedMaterial), GOLD);
         } else if (changedEntityType != null) {
             tag = text(toCamelCase(" ", changedEntityType), RED);
