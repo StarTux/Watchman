@@ -1,5 +1,6 @@
 package com.cavetale.watchman;
 
+import com.cavetale.core.connect.NetworkServer;
 import com.cavetale.watchman.action.Action;
 import com.cavetale.watchman.session.Sessions;
 import com.cavetale.watchman.sql.SQLDictionary;
@@ -54,7 +55,11 @@ public final class WatchmanPlugin extends JavaPlugin {
             worldEditListener.enable();
         }
         Bukkit.getScheduler().runTaskTimer(this, this::drainStorage, 20L, 20L);
-        Bukkit.getScheduler().runTaskLater(this, this::deleteExpiredLogs, 20L);
+        if (NetworkServer.current().getManager().isThisServer()) {
+            getLogger().info("This is the manager server. Enabling log and extra expiry");
+            Bukkit.getScheduler().runTaskLater(this, this::deleteExpiredLogs, 20L);
+            Bukkit.getScheduler().runTaskLater(this, this::deleteExpiredExtras, 20L);
+        }
     }
 
     @Override
@@ -74,23 +79,43 @@ public final class WatchmanPlugin extends JavaPlugin {
         getLogger().info("LogExpiry=" + logExpiry.toDays());
     }
 
-    protected boolean expiring;
+    protected boolean expiringLogs;
 
     private void deleteExpiredLogs() {
-        if (expiring) return;
+        if (expiringLogs) return;
         final long now = System.currentTimeMillis();
-        final int limit = 30_000;
+        final int limit = 500_000;
         getLogger().info("Deleting expired logs: limit=" + limit);
-        expiring = true;
+        expiringLogs = true;
         database.find(SQLLog.class)
             .lt("expiry", now)
             .limit(limit)
             .deleteAsync(count -> {
                     long stop = (System.currentTimeMillis() - now) / 1000L;
-                    getLogger().info("Deleted " + count + " old actions in " + stop + "s");
+                    getLogger().info("Deleted " + count + " old logs in " + stop + "s");
                     final long delay = limit == count ? 20L : 20L * 60L * 10L;
                     Bukkit.getScheduler().runTaskLater(this, this::deleteExpiredLogs, delay);
-                    expiring = false;
+                    expiringLogs = false;
+                });
+    }
+
+    protected boolean expiringExtras;
+
+    private void deleteExpiredExtras() {
+        if (expiringExtras) return;
+        final long now = System.currentTimeMillis();
+        final int limit = 1_000_000;
+        getLogger().info("Deleting expired extras: limit=" + limit);
+        expiringExtras = true;
+        database.find(SQLExtra.class)
+            .lt("expiry", now)
+            .limit(limit)
+            .deleteAsync(count -> {
+                    long stop = (System.currentTimeMillis() - now) / 1000L;
+                    getLogger().info("Deleted " + count + " old extras in " + stop + "s");
+                    final long delay = limit == count ? 20L : 20L * 60L * 10L;
+                    Bukkit.getScheduler().runTaskLater(this, this::deleteExpiredExtras, delay);
+                    expiringExtras = false;
                 });
     }
 

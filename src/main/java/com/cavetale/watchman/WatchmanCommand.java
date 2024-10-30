@@ -272,7 +272,8 @@ public final class WatchmanCommand implements TabExecutor {
             sender.sendMessage("Queued: " + plugin.actionQueue.size() + " actions");
             sender.sendMessage("Backlog: " + plugin.database.getBacklogSize());
             sender.sendMessage("Draining: " + plugin.draining);
-            sender.sendMessage("Expiring: " + plugin.expiring);
+            sender.sendMessage("Expiring Logs: " + plugin.expiringLogs);
+            sender.sendMessage("Expiring Extras: " + plugin.expiringExtras);
             return true;
         case "tp": {
             if (args.length != 2) return false;
