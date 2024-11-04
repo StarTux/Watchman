@@ -440,7 +440,6 @@ public final class WatchmanCommand implements TabExecutor {
         return null;
     }
 
-
     private boolean rank(CommandSender sender, String[] args) {
         if (args.length != 1) return false;
         final String worldName = args[0];

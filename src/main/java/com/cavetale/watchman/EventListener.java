@@ -83,6 +83,7 @@ public final class EventListener implements Listener {
     private void onBlockBreak(BlockBreakEvent event) {
         long now = System.currentTimeMillis();
         plugin.store(new Action()
+                     .setEvent(event)
                      .time(now).setActionType(ActionType.BREAK)
                      .setMaterial(event.getBlock().getType())
                      .setActorPlayer(event.getPlayer())
@@ -92,6 +93,7 @@ public final class EventListener implements Listener {
         // BlockDestroyEvent is unreliable, will always call the top block never the bottom one
         if (otherHalf != null) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .time(now).setActionType(ActionType.BREAK)
                          .setMaterial(otherHalf.getType())
                          .setActorPlayer(event.getPlayer())
@@ -108,6 +110,7 @@ public final class EventListener implements Listener {
             BlockMultiPlaceEvent multiEvent = (BlockMultiPlaceEvent) event;
             for (BlockState replacedState : multiEvent.getReplacedBlockStates()) {
                 plugin.store(new Action()
+                             .setEvent(event)
                              .time(now).setActionType(ActionType.PLACE)
                              .setMaterial(replacedState.getType())
                              .setActorPlayer(player)
@@ -117,6 +120,7 @@ public final class EventListener implements Listener {
             return;
         }
         plugin.store(new Action()
+                     .setEvent(event)
                      .time(now).setActionType(ActionType.PLACE)
                      .setMaterial(event.getBlockPlaced().getType())
                      .setActorPlayer(event.getPlayer())
@@ -129,6 +133,7 @@ public final class EventListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getBlock();
         Action action = new Action()
+            .setEvent(event)
             .setNow().setActionType(ActionType.PLACE)
             .setActorPlayer(event.getPlayer())
             .setOldState(block);
@@ -140,6 +145,7 @@ public final class EventListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getBlock();
         Action action = new Action()
+            .setEvent(event)
             .setNow().setActionType(ActionType.BREAK)
             .setMaterial(block.getType())
             .setActorPlayer(event.getPlayer())
@@ -150,6 +156,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onPlayerBlockShear(PlayerShearBlockEvent event) {
         Action action = new Action()
+            .setEvent(event)
             .setNow().setActionType(ActionType.PLACE)
             .setActorPlayer(event.getPlayer())
             .setOldState(event.getBlock());
@@ -160,6 +167,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onSignChange(SignChangeEvent event) {
         Action action = new Action().setNow()
+            .setEvent(event)
             .setActionType(ActionType.PLACE)
             .setActorPlayer(event.getPlayer())
             .setMaterial(event.getBlock().getType())
@@ -173,6 +181,7 @@ public final class EventListener implements Listener {
         LivingEntity entity = event.getEntity();
         if (entity.getKiller() != null) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .setNow().setActionType(ActionType.KILL)
                          .setActorPlayer(entity.getKiller())
                          .location(entity.getLocation())
@@ -182,6 +191,7 @@ public final class EventListener implements Listener {
         EntityDamageEvent lastDamageCause = entity.getLastDamageCause();
         if (lastDamageCause instanceof EntityDamageByEntityEvent edbee) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .setNow().setActionType(ActionType.KILL)
                          .setActorEntity(findSourceEntity(edbee.getDamager()))
                          .location(entity.getLocation())
@@ -189,6 +199,7 @@ public final class EventListener implements Listener {
             return;
         } else if (lastDamageCause instanceof EntityDamageByBlockEvent edbbe && edbbe.getDamager() != null) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .setNow().setActionType(ActionType.KILL)
                          .setActorBlock(edbbe.getDamager())
                          .location(entity.getLocation())
@@ -196,6 +207,7 @@ public final class EventListener implements Listener {
             return;
         } else if (lastDamageCause != null) {
             Action action = new Action()
+                .setEvent(event)
                 .setNow().setActionType(ActionType.KILL)
                 .setActorUnknown()
                 .location(entity.getLocation())
@@ -207,6 +219,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onPlayerDeath(PlayerDeathEvent event) {
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.DEATH)
                      .setActorPlayer(event.getEntity())
                      .location(event.getEntity().getLocation()));
@@ -215,6 +228,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onPlayerJoin(PlayerJoinEvent event) {
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.JOIN)
                      .setActorPlayer(event.getPlayer())
                      .location(event.getPlayer().getLocation()));
@@ -223,6 +237,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onPlayerQuit(PlayerQuitEvent event) {
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.QUIT)
                      .setActorPlayer(event.getPlayer())
                      .location(event.getPlayer().getLocation()));
@@ -232,6 +247,7 @@ public final class EventListener implements Listener {
     private void onEntityExplode(EntityExplodeEvent event) {
         for (Block block: event.blockList()) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .setNow().setActionType(ActionType.BREAK)
                          .setMaterial(block.getType())
                          .setActorEntity(event.getEntity())
@@ -243,6 +259,7 @@ public final class EventListener implements Listener {
     private void onBlockExplode(BlockExplodeEvent event) {
         for (Block block: event.blockList()) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .setNow().setActionType(ActionType.BREAK)
                          .setMaterial(block.getType())
                          .setActorBlock(event.getBlock())
@@ -254,6 +271,7 @@ public final class EventListener implements Listener {
     private void onPlayerDropItem(PlayerDropItemEvent event) {
         if (event.getItemDrop().getItemStack().getType().isAir()) return;
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.DROP)
                      .setMaterial(event.getItemDrop().getItemStack().getType())
                      .setActorPlayer(event.getPlayer())
@@ -265,6 +283,7 @@ public final class EventListener implements Listener {
     private void onEntityPickupItem(EntityPickupItemEvent event) {
         if (event.getItem().getItemStack().getType().isAir()) return;
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.PICKUP)
                      .setMaterial(event.getItem().getItemStack().getType())
                      .setActorEntity(event.getEntity())
@@ -276,6 +295,7 @@ public final class EventListener implements Listener {
     private void onPlayerAbsorbItem(PlayerAbsorbItemEvent event) {
         if (event.getItem().getItemStack().getType().isAir()) return;
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.PICKUP)
                      .setMaterial(event.getItem().getItemStack().getType())
                      .setActorPlayer(event.getPlayer())
@@ -288,6 +308,7 @@ public final class EventListener implements Listener {
         Player player = event.getPlayer();
         if (player.hasPermission("watchman.privacy.command")) return;
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.CHAT)
                      .setActorPlayer(player)
                      .location(event.getPlayer().getLocation())
@@ -302,6 +323,7 @@ public final class EventListener implements Listener {
         String message = event.getMessage();
         Bukkit.getScheduler().runTask(plugin, () -> {
                 plugin.store(new Action()
+                             .setEvent(event)
                              .setNow().setActionType(ActionType.CHAT)
                              .setActorPlayer(player)
                              .location(location)
@@ -317,6 +339,7 @@ public final class EventListener implements Listener {
         if (holder instanceof BlockInventoryHolder) {
             Block block = ((BlockInventoryHolder) holder).getBlock();
             plugin.store(new Action()
+                         .setEvent(event)
                          .setNow().setActionType(ActionType.OPEN)
                          .setActorPlayer(player)
                          .setOldState(block)
@@ -328,6 +351,7 @@ public final class EventListener implements Listener {
             if (left instanceof BlockInventoryHolder) {
                 Block block = ((BlockInventoryHolder) left).getBlock();
                 plugin.store(new Action()
+                             .setEvent(event)
                              .time(now).setActionType(ActionType.OPEN)
                              .setActorPlayer(player)
                              .setOldState(block)
@@ -337,6 +361,7 @@ public final class EventListener implements Listener {
             if (right instanceof BlockInventoryHolder) {
                 Block block = ((BlockInventoryHolder) right).getBlock();
                 plugin.store(new Action()
+                             .setEvent(event)
                              .time(now).setActionType(ActionType.OPEN)
                              .setActorPlayer(player)
                              .setOldState(block)
@@ -381,6 +406,7 @@ public final class EventListener implements Listener {
             : oldBlockData;
         long now = System.currentTimeMillis();
         plugin.store(new Action()
+                     .setEvent(event)
                      .time(now).setActionType(ActionType.PLACE)
                      .setMaterial(nonAirBlockData.getMaterial())
                      .setActorEntity(event.getEntity())
@@ -389,6 +415,7 @@ public final class EventListener implements Listener {
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), nonAirBlockData);
         if (otherHalf != null) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .time(now).setActionType(ActionType.PLACE)
                          .setMaterial(nonAirBlockData.getMaterial())
                          .setActorEntity(event.getEntity())
@@ -403,6 +430,7 @@ public final class EventListener implements Listener {
         if (!plugin.eventBlockGrow) return;
         long now = System.currentTimeMillis();
         plugin.store(new Action()
+                     .setEvent(event)
                      .time(now).setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
                      .setActorNature()
@@ -411,6 +439,7 @@ public final class EventListener implements Listener {
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getNewState().getBlockData());
         if (otherHalf != null) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .time(now).setActionType(ActionType.PLACE)
                          .setMaterial(event.getNewState().getType())
                          .setActorNature()
@@ -424,6 +453,7 @@ public final class EventListener implements Listener {
     private void onBlockForm(BlockFormEvent event) {
         if (!plugin.eventBlockForm) return;
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
                      .setActorNature()
@@ -435,6 +465,7 @@ public final class EventListener implements Listener {
     private void onEntityBlockForm(EntityBlockFormEvent event) {
         if (!plugin.eventEntityBlockForm) return;
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
                      .setActorEntity(event.getEntity())
@@ -446,6 +477,7 @@ public final class EventListener implements Listener {
     private void onBlockSpread(BlockSpreadEvent event) {
         if (!plugin.eventBlockSpread) return;
         plugin.store(new Action()
+                     .setEvent(event)
                      .setNow().setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewState().getType())
                      .setActorNature()
@@ -458,6 +490,7 @@ public final class EventListener implements Listener {
         Player player = event.getPlayer();
         for (BlockState state : event.getBlocks()) {
             Action action = new Action()
+                .setEvent(event)
                 .setNow().setActionType(ActionType.PLACE)
                 .setMaterial(state.getType())
                 .setOldState(state.getBlock())
@@ -475,6 +508,7 @@ public final class EventListener implements Listener {
     private void onBlockDestroy(BlockDestroyEvent event) {
         long now = System.currentTimeMillis();
         plugin.store(new Action()
+                     .setEvent(event)
                      .time(now).setActionType(ActionType.BREAK)
                      .setMaterial(event.getBlock().getType())
                      .setActorUnknown()
@@ -483,6 +517,7 @@ public final class EventListener implements Listener {
         Block otherHalf = Blocks.getOtherHalf(event.getBlock(), event.getBlock().getBlockData());
         if (otherHalf != null) {
             plugin.store(new Action()
+                         .setEvent(event)
                          .time(now).setActionType(ActionType.BREAK)
                          .setMaterial(event.getBlock().getType())
                          .setActorUnknown()
@@ -494,6 +529,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onPlayerBreakBlock(PlayerBreakBlockEvent event) {
         plugin.store(new Action().setNow()
+                     .setEvent(event)
                      .setActionType(ActionType.BREAK)
                      .setMaterial(event.getBlock().getType())
                      .setActorPlayer(event.getPlayer())
@@ -504,6 +540,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onPlayerChangeBlock(PlayerChangeBlockEvent event) {
         plugin.store(new Action().setNow()
+                     .setEvent(event)
                      .setActionType(ActionType.PLACE)
                      .setMaterial(event.getNewBlockData().getMaterial())
                      .setActorPlayer(event.getPlayer())
@@ -515,6 +552,7 @@ public final class EventListener implements Listener {
     private void onBlockFromTo(BlockFromToEvent event) {
         Block block = event.getToBlock();
         Action row = new Action()
+            .setEvent(event)
             .setNow().setActionType(ActionType.PLACE)
             .setActorNature()
             .setOldState(block);
@@ -528,6 +566,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onEntityPlace(EntityPlaceEvent event) {
         plugin.store(new Action().setNow()
+                     .setEvent(event)
                      .setActionType(ActionType.SPAWN)
                      .setActorPlayer(event.getPlayer())
                      .location(event.getEntity().getLocation())
@@ -537,6 +576,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onVehicleDestroy(VehicleDestroyEvent event) {
         Action action = new Action().setNow()
+            .setEvent(event)
             .setActionType(ActionType.KILL)
             .location(event.getVehicle().getLocation())
             .setEntity(event.getVehicle());
@@ -551,6 +591,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onHangingPlace(HangingPlaceEvent event) {
         plugin.store(new Action().setNow()
+                     .setEvent(event)
                      .setActionType(ActionType.SPAWN)
                      .setActorPlayer(event.getPlayer())
                      .location(event.getEntity().getLocation())
@@ -561,6 +602,7 @@ public final class EventListener implements Listener {
     private void onHangingBreak(HangingBreakEvent event) {
         if (event instanceof HangingBreakByEntityEvent) return;
         plugin.store(new Action().setNow()
+                     .setEvent(event)
                      .setActionType(ActionType.KILL)
                      .setActorUnknown()
                      .location(event.getEntity().getLocation())
@@ -570,6 +612,7 @@ public final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
         plugin.store(new Action().setNow()
+                     .setEvent(event)
                      .setActionType(ActionType.KILL)
                      .setActorEntity(findSourceEntity(event.getRemover()))
                      .location(event.getEntity().getLocation())
@@ -585,6 +628,7 @@ public final class EventListener implements Listener {
             ItemStack item = itemFrame.getItem();
             if (item == null || item.getType().isAir()) return;
             plugin.store(new Action().setNow()
+                         .setEvent(event)
                          .setActionType(ActionType.ACCESS)
                          .setActorEntity(findSourceEntity(event.getDamager()))
                          .location(itemFrame.getLocation())
@@ -607,6 +651,7 @@ public final class EventListener implements Listener {
                 if (item == null || item.getType().isAir()) return;
             }
             plugin.store(new Action().setNow()
+                         .setEvent(event)
                          .setActionType(ActionType.ACCESS)
                          .setActorPlayer(player)
                          .location(itemFrame.getLocation())
@@ -623,7 +668,9 @@ public final class EventListener implements Listener {
         if (playerItem == null && armorStandItem == null) return;
         Player player = event.getPlayer();
         ArmorStand armorStand = event.getRightClicked();
-        Action row = new Action().setNow()
+        Action row = new Action()
+            .setEvent(event)
+            .setNow()
             .setActorPlayer(player)
             .location(armorStand.getLocation());
         if (playerItem != null && armorStandItem != null) { // sawp
@@ -645,7 +692,9 @@ public final class EventListener implements Listener {
         Material material = event.isSigning() ? Material.WRITTEN_BOOK : Material.WRITABLE_BOOK;
         ItemStack itemStack = new ItemStack(material);
         itemStack.setItemMeta(event.getNewBookMeta());
-        plugin.store(new Action().setNow()
+        plugin.store(new Action()
+                     .setEvent(event)
+                     .setNow()
                      .setActionType(ActionType.WRITE)
                      .setActorPlayer(event.getPlayer())
                      .location(event.getPlayer().getLocation())

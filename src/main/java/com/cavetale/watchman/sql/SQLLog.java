@@ -35,4 +35,5 @@ public final class SQLLog implements SQLRow {
     // Optional, action specific
     private int oldBlockData; // SQLNamespace
     private int newBlockData; // SQLNamespace
+    @Default("0") private int eventName;
 }

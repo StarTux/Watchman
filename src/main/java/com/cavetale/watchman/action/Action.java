@@ -35,6 +35,7 @@ import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -81,6 +82,8 @@ public final class Action {
 
     private BlockData oldBlockData;
     private BlockData newBlockData;
+
+    private String eventName;
 
     private Map<ExtraType, byte[]> extras;
 
@@ -250,6 +253,11 @@ public final class Action {
         return this;
     }
 
+    public Action setEvent(Event event) {
+        eventName = event.getClass().getName();
+        return this;
+    }
+
     public String getChatMessage() {
         return extras != null && extras.containsKey(ExtraType.CHAT_MESSAGE)
             ? new String(extras.get(ExtraType.CHAT_MESSAGE))
@@ -294,6 +302,9 @@ public final class Action {
         }
         if (newBlockData != null) {
             log.setNewBlockData(dictionary().getIndex(newBlockData));
+        }
+        if (eventName != null) {
+            log.setEventName(dictionary().getClassNameIndex(eventName));
         }
         if (extras != null && !extras.isEmpty()) {
             log.setExtra(extras.size());
@@ -344,6 +355,7 @@ public final class Action {
         this.z = log.getZ();
         this.oldBlockData = dictionary().getBlockData(log.getOldBlockData());
         this.newBlockData = dictionary().getBlockData(log.getNewBlockData());
+        this.eventName = dictionary().getClassName(log.getEventName());
         if (log.getExtra() != 0) {
             for (SQLExtra extra : database().find(SQLExtra.class)
                      .eq("logId", log.getId())
@@ -501,7 +513,8 @@ public final class Action {
             .hoverEvent(showText(join(separator(newline()),
                                       join(noSeparators(), text(tiny("server "), GRAY), text(server, WHITE)),
                                       join(noSeparators(), text(tiny("world "), GRAY), text(world, WHITE)),
-                                      join(noSeparators(), text(tiny("at "), GRAY), text(coords, WHITE)))))
+                                      join(noSeparators(), text(tiny("at "), GRAY), text(coords, WHITE)),
+                                      join(noSeparators(), text(tiny("event "), GRAY), text("" + eventName, WHITE)))))
             .clickEvent(suggestCommand("/wm tp " + log.getId()))
             .insertion(coords);
     }

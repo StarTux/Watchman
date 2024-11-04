@@ -104,6 +104,10 @@ public final class Dictionary {
         return getIndex("world", world);
     }
 
+    public int getClassNameIndex(String className) {
+        return getIndex("class_name", className);
+    }
+
     public String getKey(int index) {
         SQLDictionary row = getRow(index);
         return row != null ? row.getKey() : null;
@@ -140,6 +144,11 @@ public final class Dictionary {
     }
 
     public String getWorldName(int index) {
+        SQLDictionary row = getRow(index);
+        return row != null ? row.getKey() : null;
+    }
+
+    public String getClassName(int index) {
         SQLDictionary row = getRow(index);
         return row != null ? row.getKey() : null;
     }
