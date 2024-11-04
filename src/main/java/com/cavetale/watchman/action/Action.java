@@ -406,10 +406,10 @@ public final class Action {
     }
 
     public Component getActorTag() {
-        switch (actorType) {
-        case PLAYER: {
+        return switch (actorType) {
+        case PLAYER -> {
             PlayerCache player = PlayerCache.forUuid(actorUuid);
-            return text(player.name, GREEN)
+            yield text(player.name, GREEN)
                 .insertion(player.name)
                 .hoverEvent(showText(join(separator(newline()),
                                           text(player.name, WHITE),
@@ -417,10 +417,10 @@ public final class Action {
                                           text(player.uuid.toString(), WHITE))))
                 .clickEvent(suggestCommand("/status " + player.name));
         }
-        case ENTITY: return text(toCamelCase(" ", actorEntityType), RED);
-        case BLOCK: return text(toCamelCase(" ", actorMaterial), GOLD);
-        default: return text(toCamelCase(" ", actorType), LIGHT_PURPLE, ITALIC);
-        }
+        case ENTITY -> text(toCamelCase(" ", actorEntityType), RED);
+        case BLOCK -> actorMaterial != null ? text(toCamelCase(" ", actorMaterial), GOLD) : text("N/A", DARK_RED);
+        default -> text(toCamelCase(" ", actorType), LIGHT_PURPLE, ITALIC);
+        };
     }
 
     public Component getChangedTag() {
