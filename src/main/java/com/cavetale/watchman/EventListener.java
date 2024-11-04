@@ -233,6 +233,7 @@ public final class EventListener implements Listener {
         for (Block block: event.blockList()) {
             plugin.store(new Action()
                          .setNow().setActionType(ActionType.BREAK)
+                         .setMaterial(block.getType())
                          .setActorEntity(event.getEntity())
                          .setOldState(block));
         }
