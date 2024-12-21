@@ -36,6 +36,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -71,6 +72,7 @@ public final class Action {
     private ActorType actorType;
     private EntityType actorEntityType;
     private Material actorMaterial;
+    private DamageCause actorDamageCause;
     private UUID actorUuid;
 
     private Instant time;
@@ -191,6 +193,12 @@ public final class Action {
         return this;
     }
 
+    public Action setActorDamageCause(DamageCause damageCause) {
+        this.actorType = ActorType.DAMAGE;
+        this.actorDamageCause = damageCause;
+        return this;
+    }
+
     public Action setOldState(Block block) {
         setOldState(block.getState());
         return this;
@@ -286,6 +294,8 @@ public final class Action {
             log.setActorEnum(dictionary().getIndex(actorEntityType));
         } else if (actorMaterial != null) {
             log.setActorEnum(dictionary().getIndex(actorMaterial));
+        } else if (actorDamageCause != null) {
+            log.setActorEnum(dictionary().getIndex(actorDamageCause));
         }
         if (actorUuid != null) {
             log.setActorUuid(dictionary().getIndex(actorUuid));
@@ -340,11 +350,13 @@ public final class Action {
         }
         // Actor
         this.actorType = ActorType.ofIndex(log.getActorType());
-        Enum actorEnum = dictionary().getEntityType(log.getActorEnum());
+        Enum actorEnum = dictionary().getEnum(log.getActorEnum());
         if (actorEnum instanceof EntityType entityType) {
             this.actorEntityType = entityType;
         } else if (actorEnum instanceof Material material) {
             this.actorMaterial = material;
+        } else if (actorEnum instanceof DamageCause damageCause) {
+            this.actorDamageCause = damageCause;
         }
         this.actorUuid = dictionary().getUuid(log.getActorUuid());
         // Location
@@ -431,6 +443,7 @@ public final class Action {
         }
         case ENTITY -> text(toCamelCase(" ", actorEntityType), RED);
         case BLOCK -> actorMaterial != null ? text(toCamelCase(" ", actorMaterial), GOLD) : text("N/A", DARK_RED);
+        case DAMAGE -> actorDamageCause != null ? text(toCamelCase(" ", actorDamageCause), RED) : text("N/A", DARK_RED);
         default -> text(toCamelCase(" ", actorType), LIGHT_PURPLE, ITALIC);
         };
     }

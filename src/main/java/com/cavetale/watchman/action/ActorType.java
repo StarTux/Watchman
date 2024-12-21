@@ -10,6 +10,7 @@ public enum ActorType {
     BLOCK(3),
     NATURE(4),
     FAKE(5),
+    DAMAGE(6),
     ;
 
     public final int index;

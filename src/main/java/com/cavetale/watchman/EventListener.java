@@ -209,6 +209,14 @@ public final class EventListener implements Listener {
             Action action = new Action()
                 .setEvent(event)
                 .setNow().setActionType(ActionType.KILL)
+                .setActorDamageCause(lastDamageCause.getCause())
+                .location(entity.getLocation())
+                .setEntity(entity);
+            plugin.store(action);
+        } else {
+            Action action = new Action()
+                .setEvent(event)
+                .setNow().setActionType(ActionType.KILL)
                 .setActorUnknown()
                 .location(entity.getLocation())
                 .setEntity(entity);

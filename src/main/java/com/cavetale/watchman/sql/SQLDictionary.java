@@ -11,7 +11,7 @@ import lombok.Data;
 @UniqueKey({"namespace", "key"})
 public final class SQLDictionary implements SQLRow {
     @Id private Integer id;
-    @VarChar(40) private String namespace;
+    @VarChar(80) private String namespace;
     @VarChar(255) private String key;
     private transient Enum enumCache;
 
