@@ -8,6 +8,7 @@ import com.cavetale.watchman.WatchmanPlugin;
 import com.cavetale.watchman.sql.SQLExtra;
 import com.cavetale.watchman.sql.SQLLog;
 import com.winthier.playercache.PlayerCache;
+import io.papermc.paper.entity.EntitySerializationFlag;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -220,7 +221,7 @@ public final class Action {
 
     public Action setEntity(Entity entity) {
         setEntityType(entity.getType());
-        @SuppressWarnings("deprecation") final byte[] bytes = Bukkit.getUnsafe().serializeEntity(entity);
+        @SuppressWarnings("deprecation") final byte[] bytes = Bukkit.getUnsafe().serializeEntity(entity, EntitySerializationFlag.FORCE, EntitySerializationFlag.MISC);
         putExtra(ExtraType.ENTITY, bytes);
         return this;
     }
