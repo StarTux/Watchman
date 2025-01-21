@@ -45,7 +45,6 @@ public final class WatchmanPlugin extends JavaPlugin {
                                         SQLDictionary.class,
                                         SQLLookupSession.class));
         database.createAllTables();
-        database.getTable(SQLLog.class).createColumnIfMissing("eventName");
         watchmanCommand.enable();
         watchmanToolCommand.enable();
         watchmanPageCommand.enable();
