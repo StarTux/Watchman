@@ -221,6 +221,7 @@ public final class Action {
 
     public Action setEntity(Entity entity) {
         setEntityType(entity.getType());
+        if (entity instanceof Player) return this;
         @SuppressWarnings("deprecation") final byte[] bytes = Bukkit.getUnsafe().serializeEntity(entity, EntitySerializationFlag.FORCE, EntitySerializationFlag.MISC);
         putExtra(ExtraType.ENTITY, bytes);
         return this;
