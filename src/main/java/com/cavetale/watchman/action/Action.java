@@ -594,7 +594,16 @@ public final class Action {
                 WatchmanPlugin.getInstance().getLogger().log(Level.SEVERE, "rollback actionType=KILL " + log, iae);
                 return false;
             }
-            return entity.spawnAt(block.getLocation().add(0.5, 0.0, 0.5));
+            Location location = null;
+            try {
+                location = new Location(block.getWorld(), entity.getX(), entity.getY(), entity.getZ(), entity.getYaw(), entity.getPitch());
+            } catch (Exception e) {
+                WatchmanPlugin.getInstance().getLogger().log(Level.SEVERE, "rollback actionType=KILL " + log, e);
+            }
+            if (location == null || !location.getBlock().equals(block)) {
+                location = block.getLocation().add(0.5, 0.0, 0.5);
+            }
+            return entity.spawnAt(location);
         }
         default: return false;
         }
