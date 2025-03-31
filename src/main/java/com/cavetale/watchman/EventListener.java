@@ -17,6 +17,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.DoubleChest;
@@ -178,7 +179,12 @@ public final class EventListener implements Listener {
     // For now, we only log player caused entity deaths.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onEntityDeath(EntityDeathEvent event) {
-        LivingEntity entity = event.getEntity();
+        final LivingEntity entity = (LivingEntity) event.getEntity().copy();
+        final EntityDamageEvent lastDamageCause = entity.getLastDamageCause();
+        if (lastDamageCause != null) {
+            final double max = entity.getAttribute(Attribute.MAX_HEALTH).getValue();
+            entity.setHealth(Math.min(max, entity.getHealth() + lastDamageCause.getFinalDamage()));
+        }
         if (entity.getKiller() != null) {
             plugin.store(new Action()
                          .setEvent(event)
@@ -188,7 +194,6 @@ public final class EventListener implements Listener {
                          .setEntity(entity));
             return;
         }
-        EntityDamageEvent lastDamageCause = entity.getLastDamageCause();
         if (lastDamageCause instanceof EntityDamageByEntityEvent edbee) {
             plugin.store(new Action()
                          .setEvent(event)

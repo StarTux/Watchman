@@ -26,6 +26,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
@@ -35,6 +36,7 @@ import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
@@ -593,6 +595,9 @@ public final class Action {
             } catch (IllegalArgumentException iae) {
                 WatchmanPlugin.getInstance().getLogger().log(Level.SEVERE, "rollback actionType=KILL " + log, iae);
                 return false;
+            }
+            if (entity instanceof LivingEntity living && living.getHealth() < 0.0001) {
+                living.setHealth(living.getAttribute(Attribute.MAX_HEALTH).getValue());
             }
             Location location = null;
             try {
