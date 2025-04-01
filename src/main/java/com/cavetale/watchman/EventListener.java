@@ -179,9 +179,10 @@ public final class EventListener implements Listener {
     // For now, we only log player caused entity deaths.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     private void onEntityDeath(EntityDeathEvent event) {
-        final LivingEntity entity = (LivingEntity) event.getEntity().copy();
+        LivingEntity entity = event.getEntity();
         final EntityDamageEvent lastDamageCause = entity.getLastDamageCause();
-        if (lastDamageCause != null) {
+        if (lastDamageCause != null && !(entity instanceof Player)) {
+            entity = (LivingEntity) entity.copy();
             final double max = entity.getAttribute(Attribute.MAX_HEALTH).getValue();
             entity.setHealth(Math.min(max, entity.getHealth() + lastDamageCause.getFinalDamage()));
         }
