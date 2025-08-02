@@ -14,7 +14,14 @@ public enum ActionType {
     SPAWN(3, "spawn", Category.ENTITY),
 
     OPEN(4, "open", Category.INVENTORY),
+    /**
+     * @deprecation replaced with insert or access
+     */
+    @Deprecated
     ACCESS(5, "access", Category.INVENTORY),
+
+    INSERT(13, "insert", Category.ITEM),
+    EXTRACT(14, "extract", Category.ITEM),
 
     DROP(6, "drop", Category.ITEM),
     PICKUP(7, "pickup", Category.ITEM),

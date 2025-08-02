@@ -11,6 +11,7 @@ import com.cavetale.watchman.lookup.BlockLookup;
 import com.cavetale.watchman.sql.SQLLog;
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import io.papermc.paper.event.block.PlayerShearBlockEvent;
+import io.papermc.paper.event.player.PlayerInsertLecternBookEvent;
 import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
@@ -63,6 +64,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTakeLecternBookEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.BlockInventoryHolder;
@@ -643,7 +645,7 @@ public final class EventListener implements Listener {
             if (item == null || item.getType().isAir()) return;
             plugin.store(new Action().setNow()
                          .setEvent(event)
-                         .setActionType(ActionType.ACCESS)
+                         .setActionType(ActionType.EXTRACT)
                          .setActorEntity(findSourceEntity(event.getDamager()))
                          .location(itemFrame.getLocation())
                          .setItemStack(item));
@@ -666,7 +668,7 @@ public final class EventListener implements Listener {
             }
             plugin.store(new Action().setNow()
                          .setEvent(event)
-                         .setActionType(ActionType.ACCESS)
+                         .setActionType(ActionType.INSERT)
                          .setActorPlayer(player)
                          .location(itemFrame.getLocation())
                          .setItemStack(item));
@@ -680,25 +682,40 @@ public final class EventListener implements Listener {
         if (playerItem != null && playerItem.getType().isAir()) playerItem = null;
         if (armorStandItem != null && armorStandItem.getType().isAir()) armorStandItem = null;
         if (playerItem == null && armorStandItem == null) return;
-        Player player = event.getPlayer();
+        final Player player = event.getPlayer();
         ArmorStand armorStand = event.getRightClicked();
-        Action row = new Action()
-            .setEvent(event)
-            .setNow()
-            .setActorPlayer(player)
-            .location(armorStand.getLocation());
-        if (playerItem != null && armorStandItem != null) { // sawp
-            row.setActionType(ActionType.ACCESS)
-                .setItemStack(armorStandItem);
-            //.setItemStack(playerItem);
+        if (playerItem != null && armorStandItem != null) { // swap
+            plugin.store(new Action()
+                         .setEvent(event)
+                         .setNow()
+                         .setActionType(ActionType.EXTRACT)
+                         .setActorPlayer(player)
+                         .location(armorStand.getLocation())
+                         .setItemStack(armorStandItem));
+            plugin.store(new Action()
+                         .setEvent(event)
+                         .setNow()
+                         .setActionType(ActionType.EXTRACT)
+                         .setActorPlayer(player)
+                         .location(armorStand.getLocation())
+                         .setItemStack(playerItem));
         } else if (playerItem != null) { // insert
-            row.setActionType(ActionType.ACCESS)
-                .setItemStack(playerItem);
+            plugin.store(new Action()
+                         .setEvent(event)
+                         .setNow()
+                         .setActorPlayer(player)
+                         .location(armorStand.getLocation())
+                         .setActionType(ActionType.INSERT)
+                         .setItemStack(playerItem));
         } else if (armorStandItem != null) { // remove
-            row.setActionType(ActionType.ACCESS)
-                .setItemStack(armorStandItem);
+            plugin.store(new Action()
+                         .setEvent(event)
+                         .setNow()
+                         .setActionType(ActionType.EXTRACT)
+                         .setActorPlayer(player)
+                         .location(armorStand.getLocation())
+                         .setItemStack(armorStandItem));
         }
-        plugin.store(row);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -713,6 +730,28 @@ public final class EventListener implements Listener {
                      .setActorPlayer(event.getPlayer())
                      .location(event.getPlayer().getLocation())
                      .setItemStack(itemStack));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    private void onPlayerInsertLecternBook(PlayerInsertLecternBookEvent event) {
+        plugin.store(new Action()
+                     .setEvent(event)
+                     .setNow()
+                     .setActionType(ActionType.INSERT)
+                     .setActorPlayer(event.getPlayer())
+                     .block(event.getBlock())
+                     .setItemStack(event.getBook()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    private void onPlayerTakeLecternBook(PlayerTakeLecternBookEvent event) {
+        plugin.store(new Action()
+                     .setEvent(event)
+                     .setNow()
+                     .setActionType(ActionType.EXTRACT)
+                     .setActorPlayer(event.getPlayer())
+                     .block(event.getLectern().getBlock())
+                     .setItemStack(event.getBook()));
     }
 
     private static final Component WMTOOL_NOTIFICATION = Component.text("/wmtool", YELLOW)
