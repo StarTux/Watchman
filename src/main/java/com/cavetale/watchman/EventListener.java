@@ -112,10 +112,12 @@ public final class EventListener implements Listener {
         if (event instanceof BlockMultiPlaceEvent) {
             BlockMultiPlaceEvent multiEvent = (BlockMultiPlaceEvent) event;
             for (BlockState replacedState : multiEvent.getReplacedBlockStates()) {
+                // These are the OLD states!
+                // The NEW states are in replacedState.getBlock()
                 plugin.store(new Action()
                              .setEvent(event)
                              .time(now).setActionType(ActionType.PLACE)
-                             .setMaterial(replacedState.getType())
+                             .setMaterial(replacedState.getBlock().getType())
                              .setActorPlayer(player)
                              .setOldState(replacedState)
                              .setNewState(replacedState.getBlock()));
