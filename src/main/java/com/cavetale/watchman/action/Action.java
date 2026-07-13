@@ -236,7 +236,7 @@ public final class Action {
 
     public Action setItemStack(ItemStack value) {
         setMaterial(value.getType());
-        @SuppressWarnings("deprecation") final byte[] bytes = Bukkit.getUnsafe().serializeItem(value);
+        final byte[] bytes = value.serializeAsBytes();
         putExtra(ExtraType.ITEM, bytes);
         return this;
     }
@@ -465,8 +465,7 @@ public final class Action {
             tag = text("N/A", DARK_GRAY);
         }
         if (extras != null && extras.containsKey(ExtraType.ITEM)) {
-            @SuppressWarnings("deprecation") ItemStack item = Bukkit
-                .getUnsafe().deserializeItem(extras.get(ExtraType.ITEM));
+            ItemStack item = ItemStack.deserializeBytes(extras.get(ExtraType.ITEM));
             item.editMeta(meta -> {
                     meta.lore(List.of());
                     meta.displayName(null);
@@ -507,8 +506,7 @@ public final class Action {
 
     public boolean open(Player player) {
         if (extras != null && extras.containsKey(ExtraType.ITEM)) {
-            @SuppressWarnings("deprecation") ItemStack item = Bukkit
-                .getUnsafe().deserializeItem(extras.get(ExtraType.ITEM));
+            ItemStack item = ItemStack.deserializeBytes(extras.get(ExtraType.ITEM));
             Inventory inventory = Bukkit.createInventory(null, 9, text("Item #" + log.getId() + " (copy)", DARK_GRAY));
             inventory.setItem(4, item);
             player.openInventory(inventory);
